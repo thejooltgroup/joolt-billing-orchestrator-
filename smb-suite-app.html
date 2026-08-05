@@ -1,0 +1,2584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JOOLT SMB Operations Suite</title>
+<meta name="theme-color" content="#0B0F1A" />
+<style>
+  :root {
+    --bg: #0B0F1A;
+    --panel: #111827;
+    --panel-2: #151C2C;
+    --border: #1F2A3D;
+    --text: #E5E9F0;
+    --text-dim: #8B95AE;
+    --muted: #5A6479;
+    --primary: #7C3AED;
+    --primary-2: #A855F7;
+    --accent: #06B6D4;
+    --accent-2: #22D3EE;
+    --success: #10B981;
+    --warn: #F59E0B;
+    --danger: #EF4444;
+    --grad: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%);
+    --grad-2: linear-gradient(135deg, #A855F7 0%, #22D3EE 100%);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    font-size: 14px; line-height: 1.5;
+    height: 100vh; overflow: hidden;
+  }
+  button { font-family: inherit; cursor: pointer; border: none; }
+  input, textarea, select {
+    font-family: inherit;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; outline: none;
+    width: 100%;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+  a { color: var(--accent-2); text-decoration: none; cursor: pointer; }
+
+  .app { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 56px 1fr; height: 100vh; }
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; padding: 0 20px;
+    background: var(--panel); border-bottom: 1px solid var(--border); gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+  .brand-mark {
+    width: 28px; height: 28px; border-radius: 8px; background: var(--grad);
+    display: grid; place-items: center; font-size: 14px; font-weight: 900; color: white;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+  }
+  .brand-name { background: var(--grad-2); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .brand-sub { font-size: 11px; color: var(--text-dim); font-weight: 500; margin-left: 4px; }
+  .topbar .biz { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .biz-name { font-size: 13px; padding: 6px 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
+  .biz-name b { color: var(--accent-2); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .btn:hover { background: #1B2338; }
+  .btn.primary { background: var(--grad); color: white; border: none; }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.ghost { background: transparent; }
+  .btn.sm { padding: 6px 10px; font-size: 12px; }
+  .btn.danger { background: var(--danger); color: white; border: none; }
+  .btn.success { background: var(--success); color: white; border: none; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    background: rgba(124, 58, 237, 0.15); color: var(--primary-2);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+  }
+  .badge.green { background: rgba(16,185,129,0.15); color: #34D399; border-color: rgba(16,185,129,0.3); }
+  .badge.amber { background: rgba(245,158,11,0.15); color: #FBBF24; border-color: rgba(245,158,11,0.3); }
+  .badge.red { background: rgba(239,68,68,0.15); color: #F87171; border-color: rgba(239,68,68,0.3); }
+  .badge.cyan { background: rgba(6,182,212,0.15); color: var(--accent-2); border-color: rgba(6,182,212,0.3); }
+  .badge.gray { background: rgba(139,149,174,0.15); color: var(--text-dim); border-color: rgba(139,149,174,0.3); }
+
+  .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 12px 0; overflow-y: auto; }
+  .nav-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: 12px 16px 6px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 16px; margin: 1px 8px;
+    border-radius: 8px; color: var(--text-dim); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.1s; position: relative;
+  }
+  .nav-item .ic { width: 18px; text-align: center; font-size: 15px; }
+  .nav-item:hover { background: var(--panel-2); color: var(--text); }
+  .nav-item.active { background: rgba(124, 58, 237, 0.12); color: white; }
+  .nav-item.active::before {
+    content: ""; position: absolute; left: -8px; top: 6px; bottom: 6px;
+    width: 3px; border-radius: 0 3px 3px 0; background: var(--grad);
+  }
+  .nav-item .count {
+    margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 999px;
+    background: var(--panel-2); color: var(--text-dim);
+  }
+  .nav-item.active .count { background: var(--primary); color: white; }
+
+  .main { overflow-y: auto; background: var(--bg); padding: 20px 28px 40px; }
+  .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .page-title { font-size: 22px; font-weight: 700; margin: 0; }
+  .page-sub { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+  .page-actions { margin-left: auto; display: flex; gap: 8px; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .kpi .lbl { color: var(--text-dim); font-size: 12px; margin-bottom: 6px; }
+  .kpi .val { font-size: 22px; font-weight: 700; }
+  .kpi .delta { font-size: 12px; margin-top: 4px; }
+  .kpi .delta.up { color: #34D399; }
+  .kpi .delta.down { color: #F87171; }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .card-h { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .card-title { font-size: 15px; font-weight: 700; }
+  .card-h .btn { margin-left: auto; }
+
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data th {
+    text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 600;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.data td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  table.data tr:last-child td { border-bottom: none; }
+  table.data tr:hover td { background: var(--panel-2); }
+  table.data .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--grad); color: white; display: inline-grid; place-items: center;
+    font-size: 12px; font-weight: 700; margin-right: 8px; vertical-align: middle;
+  }
+  .clickable { cursor: pointer; color: var(--accent-2); }
+  .clickable:hover { text-decoration: underline; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+  .list-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .list-item:last-child { border-bottom: none; }
+  .list-item .meta { flex: 1; }
+  .list-item .title { font-weight: 600; color: var(--text); font-size: 13px; }
+  .list-item .sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+
+  .sophia-fab {
+    position: fixed; right: 24px; bottom: 24px; z-index: 30;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--grad); color: white;
+    display: grid; place-items: center;
+    box-shadow: 0 10px 30px rgba(124,58,237,0.5);
+    cursor: pointer; font-size: 24px; animation: pulse 3s infinite; font-weight: 800;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 10px 30px rgba(124,58,237,0.5); }
+    50% { box-shadow: 0 10px 40px rgba(6,182,212,0.6); }
+  }
+  .sophia {
+    position: fixed; right: 0; top: 56px; bottom: 0; width: 400px;
+    background: var(--panel); border-left: 1px solid var(--border);
+    z-index: 40; display: flex; flex-direction: column;
+    transform: translateX(100%); transition: transform 0.25s;
+    box-shadow: -20px 0 60px rgba(0,0,0,0.4);
+  }
+  .sophia.open { transform: translateX(0); }
+  .sophia-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .sophia-h .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--grad); color: white;
+    display: grid; place-items: center; font-weight: 800; font-size: 15px; position: relative;
+  }
+  .sophia-h .avatar::after {
+    content: ""; position: absolute; bottom: 0; right: 0;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #10B981; border: 2px solid var(--panel);
+  }
+  .sophia-h .name { font-weight: 700; }
+  .sophia-h .role { color: var(--text-dim); font-size: 11px; }
+  .sophia-h .close { margin-left: auto; background: transparent; color: var(--text-dim); font-size: 20px; padding: 4px 8px; border-radius: 6px; }
+  .sophia-h .close:hover { background: var(--panel-2); color: white; }
+  .sophia-msgs { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 90%; padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+  .msg.bot { background: var(--panel-2); align-self: flex-start; border: 1px solid var(--border); }
+  .msg.user { background: var(--grad); color: white; align-self: flex-end; }
+  .msg .actions { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .msg .quick {
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(124,58,237,0.15); color: var(--primary-2);
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    border: 1px solid rgba(124,58,237,0.3);
+  }
+  .msg .quick:hover { background: rgba(124,58,237,0.25); }
+  .sophia-input { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .sophia-input input { flex: 1; }
+
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    width: 600px; max-width: 92vw; max-height: 90vh;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .modal-h { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+  .modal-h h2 { margin: 0; font-size: 18px; }
+  .modal-h .close { margin-left: auto; background: transparent; color: var(--text-dim); font-size: 22px; padding: 4px 10px; border-radius: 6px; }
+  .modal-b { padding: 24px; overflow-y: auto; }
+  .modal-f { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .bar { height: 8px; border-radius: 4px; background: var(--panel-2); overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: var(--grad); }
+
+  .pill-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim);
+    cursor: pointer;
+  }
+  .pill.on { background: rgba(124,58,237,0.15); color: var(--primary-2); border-color: rgba(124,58,237,0.3); }
+  .pill.on-green { background: rgba(16,185,129,0.15); color: #34D399; border-color: rgba(16,185,129,0.3); }
+  .pill.on-red { background: rgba(239,68,68,0.15); color: #F87171; border-color: rgba(239,68,68,0.3); }
+
+  .toast-wrap { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 4px solid var(--success);
+    padding: 12px 18px; border-radius: 10px; font-size: 13px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5); animation: pop 0.25s;
+  }
+  .toast.warn { border-left-color: var(--warn); }
+  .toast.error { border-left-color: var(--danger); }
+  @keyframes pop {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #2A3550; border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  .stat-tiny { display: flex; gap: 24px; }
+  .stat-tiny .st { font-size: 12px; color: var(--text-dim); }
+  .stat-tiny .st b { color: var(--text); font-size: 16px; display: block; }
+
+  .empty {
+    padding: 40px; text-align: center; color: var(--text-dim);
+    border: 1px dashed var(--border); border-radius: 12px;
+  }
+  .empty .em { font-size: 32px; margin-bottom: 8px; }
+
+  .draft-card {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; margin-bottom: 10px;
+  }
+  .draft-card .draft-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .draft-card .draft-h .sub { color: var(--text-dim); font-size: 11px; }
+  .draft-card .draft-body { color: var(--text-dim); font-size: 13px; margin-bottom: 10px; white-space: pre-wrap; }
+  .draft-card .draft-actions { display: flex; gap: 6px; }
+
+  .check-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .check-row:last-child { border-bottom: none; }
+  .check {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--success); color: white; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .check.wait { background: var(--warn); }
+  .check.pending { background: var(--panel-2); color: var(--muted); border: 1px solid var(--border); }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 60px 1fr; }
+    .sidebar .lbl-text, .nav-group-label { display: none; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .sophia { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">J</div>
+      <div><span class="brand-name">JOOLT</span><span class="brand-sub">SMB Operations Suite</span></div>
+    </div>
+    <div class="biz">
+      <span id="licenseBanner" style="display:none;"></span>
+      <div class="biz-name">Business: <b id="bizNameDisplay">Loading&hellip;</b></div>
+      <button class="btn ghost" onclick="openWizard()">&#9881; Setup</button>
+      <button class="btn primary" onclick="go('deploy')">Deploy</button>
+    </div>
+  </div>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-group-label">Command Center</div>
+    <div class="nav-item active" data-page="dashboard"><span class="ic">&#9680;</span><span class="lbl-text">Dashboard</span></div>
+
+    <div class="nav-group-label">Front Office</div>
+    <div class="nav-item" data-page="phone"><span class="ic">&#9742;</span><span class="lbl-text">Phone</span><span class="count" data-count="phone">0</span></div>
+    <div class="nav-item" data-page="email"><span class="ic">&#9993;</span><span class="lbl-text">Email</span><span class="count" data-count="email">0</span></div>
+    <div class="nav-item" data-page="webchat"><span class="ic">&#128172;</span><span class="lbl-text">WebChat</span><span class="count" data-count="webchat">0</span></div>
+    <div class="nav-item" data-page="reviews"><span class="ic">&#9733;</span><span class="lbl-text">Reviews</span><span class="count" data-count="reviews">0</span></div>
+
+    <div class="nav-group-label">Growth</div>
+    <div class="nav-item" data-page="marketing"><span class="ic">&#9672;</span><span class="lbl-text">Marketing</span></div>
+    <div class="nav-item" data-page="leads"><span class="ic">&#9670;</span><span class="lbl-text">Leads</span><span class="count" data-count="leads">0</span></div>
+    <div class="nav-item" data-page="funnels"><span class="ic">&#9661;</span><span class="lbl-text">Funnels</span></div>
+    <div class="nav-item" data-page="templates"><span class="ic">&#9707;</span><span class="lbl-text">Templates</span></div>
+
+    <div class="nav-group-label">Operations</div>
+    <div class="nav-item" data-page="crm"><span class="ic">&#9673;</span><span class="lbl-text">CRM</span></div>
+    <div class="nav-item" data-page="inventory"><span class="ic">&#9636;</span><span class="lbl-text">Inventory</span></div>
+    <div class="nav-item" data-page="invoicing"><span class="ic">$</span><span class="lbl-text">Invoicing</span><span class="count" data-count="invoicing">0</span></div>
+    <div class="nav-item" data-page="contracts"><span class="ic">&sect;</span><span class="lbl-text">Contracts</span></div>
+    <div class="nav-item" data-page="insurance"><span class="ic">&loz;</span><span class="lbl-text">Insurance</span></div>
+
+    <div class="nav-group-label">Back Office</div>
+    <div class="nav-item" data-page="finances"><span class="ic">&#8362;</span><span class="lbl-text">Finances</span></div>
+    <div class="nav-item" data-page="taxes"><span class="ic">%</span><span class="lbl-text">Taxes</span></div>
+
+    <div class="nav-group-label">Platform</div>
+    <div class="nav-item" data-page="automations"><span class="ic">&#9881;</span><span class="lbl-text">Automations</span></div>
+    <div class="nav-item" data-page="deploy"><span class="ic">&#9654;</span><span class="lbl-text">Deploy</span></div>
+    <div class="nav-item" data-page="migration"><span class="ic">&#8599;</span><span class="lbl-text">Sophia</span></div>
+    <div class="nav-item" data-page="settings"><span class="ic">&#9881;</span><span class="lbl-text">Settings</span></div>
+  </nav>
+
+  <main class="main" id="main"></main>
+</div>
+
+<div class="sophia-fab" onclick="toggleSophia()" title="Ask Sophia">S</div>
+
+<aside class="sophia" id="sophia">
+  <div class="sophia-h">
+    <div class="avatar">S</div>
+    <div>
+      <div class="name">Sophia</div>
+      <div class="role">AI operator &middot; running your front office</div>
+    </div>
+    <button class="close" onclick="toggleSophia()">&times;</button>
+  </div>
+  <div class="sophia-msgs" id="sophiaMsgs"></div>
+  <div class="sophia-input">
+    <input id="sophiaInput" placeholder="Tell Sophia what to do&hellip;" />
+    <button class="btn primary" onclick="sendSophia()">Send</button>
+  </div>
+</aside>
+
+<div class="modal-bg" id="wizardModal">
+  <div class="modal">
+    <div class="modal-h"><h2 id="wizTitle">Welcome to JOOLT</h2><button class="close" onclick="closeWizard()">&times;</button></div>
+    <div class="modal-b" id="wizBody"></div>
+    <div class="modal-f">
+      <button class="btn ghost" onclick="wizPrev()" id="wizPrev">Back</button>
+      <button class="btn primary" onclick="wizNext()" id="wizNext">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="genericModal">
+  <div class="modal">
+    <div class="modal-h"><h2 id="gmTitle">&nbsp;</h2><button class="close" onclick="Modal.close()">&times;</button></div>
+    <div class="modal-b" id="gmBody"></div>
+    <div class="modal-f" id="gmFooter"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* =========================================================================
+   JOOLT SMB Operations Suite - self-contained business system
+   Persistent local state, automation engine, cross-module data flow.
+   ========================================================================= */
+
+/* ===================== Utils ===================== */
+const uid = () => "id" + Math.random().toString(36).slice(2,10);
+const now = () => Date.now();
+const fmt$ = n => "$" + (n||0).toLocaleString("en-US", {minimumFractionDigits:0, maximumFractionDigits:2});
+const fmtDate = ms => { if (!ms) return "-"; const d = new Date(ms); return d.toLocaleDateString("en-US", {month:"short", day:"numeric"}); };
+const fmtDateTime = ms => { if (!ms) return "-"; const d = new Date(ms); return d.toLocaleString("en-US", {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}); };
+const daysBetween = (a, b) => Math.floor((b - a) / 86400000);
+const daysAgo = ms => daysBetween(ms, now());
+const escapeHtml = s => (s||"").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const initials = name => (name||"?").split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase();
+
+/* ===================== Toast ===================== */
+function toast(msg, kind) {
+  const w = document.getElementById("toastWrap");
+  const el = document.createElement("div");
+  el.className = "toast" + (kind ? " " + kind : "");
+  el.textContent = msg;
+  w.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+/* ===================== Store (persistent) ===================== */
+const KEY = "joolt-suite-v1";
+const Store = {
+  state: null,
+  subscribers: [],
+  load() {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      try { this.state = JSON.parse(raw); } catch(e) { this.state = null; }
+    }
+    if (!this.state || !this.state.business) {
+      this.state = defaultState();
+    }
+    this.migrateIfNeeded();
+  },
+  migrateIfNeeded() {
+    const s = this.state;
+    const buckets = ["contacts","deals","leads","invoices","payments","products","contracts","policies","reviews","calls","emails","chats","posts","tasks","activity","funnels","estimates"];
+    buckets.forEach(b => { if (!Array.isArray(s[b])) s[b] = []; });
+    if (!s.settings) s.settings = defaultSettings();
+    if (!s.settings.autonomy) s.settings.autonomy = defaultSettings().autonomy;
+    if (!s.settings.thresholds) s.settings.thresholds = defaultSettings().thresholds;
+    if (!s.settings.connectors) s.settings.connectors = defaultSettings().connectors;
+    if (!s.business.voice) s.business.voice = { tone: "friendly and direct", rules: [], samples: [] };
+    if (!s.business.hours) s.business.hours = { start: "08:00", end: "17:00" };
+  },
+  save() { localStorage.setItem(KEY, JSON.stringify(this.state)); },
+  update(fn) { fn(this.state); this.save(); this.notify(); },
+  reset() { localStorage.removeItem(KEY); this.state = defaultState(); this.save(); this.notify(); },
+  subscribe(fn) { this.subscribers.push(fn); },
+  notify() { this.subscribers.forEach(fn => { try { fn(this.state); } catch(e) {} }); },
+  seedSample() { Object.assign(this.state, sampleData()); this.save(); this.notify(); }
+};
+
+function defaultSettings() {
+  return {
+    autonomy: {
+      replyReviews: "draft",
+      draftEmails: "draft",
+      sendInvoiceReminders: "auto",
+      sendNewInvoices: "draft",
+      bookCalendar: "auto",
+      postSocial: "draft",
+      publishAds: "draft",
+      signContracts: "never",
+      answerPhone: "auto",
+      answerWebchat: "auto",
+      reorderInventory: "draft"
+    },
+    thresholds: {
+      maxAutoMoney: 500,
+      maxAutoAd: 250,
+      invoiceOverdueChaseDays: 5,
+      invoiceMaxChases: 3
+    },
+    connectors: {
+      quickbooks: false, hubspot: false, gmail: false, calendar: false,
+      paypal: false, twilio: false, canva: false, docusign: false
+    },
+    claudeApiKey: ""
+  };
+}
+
+function defaultState() {
+  return {
+    business: {
+      name: "Your Business",
+      industry: "Home services",
+      size: "Solo + 1-5",
+      email: "",
+      phone: "",
+      hours: { start: "08:00", end: "17:00" },
+      voice: { tone: "friendly and direct", rules: [], samples: [] }
+    },
+    contacts: [], deals: [], leads: [], invoices: [], payments: [],
+    products: [], contracts: [], policies: [], reviews: [],
+    calls: [], emails: [], chats: [], posts: [], tasks: [],
+    activity: [], funnels: [], estimates: [],
+    settings: defaultSettings(),
+    onboarded: false
+  };
+}
+
+/* ===================== Activity log ===================== */
+function logActivity(entry) {
+  Store.update(s => {
+    s.activity.unshift({ id: uid(), when: now(), ...entry });
+    if (s.activity.length > 200) s.activity.length = 200;
+  });
+}
+
+/* ===================== Sample data (Northstar Home Services) ===================== */
+function sampleData() {
+  const D = 86400000;
+  const t = now();
+  const contacts = [
+    { id: uid(), name: "Mia Chen", email: "mia@ridgeline.co", phone: "(973) 555-0142", company: "Ridgeline Realty", tags: ["hot","commercial"], ltv: 12400, source: "Web chat", status: "active", notes: "Board meeting on Thursdays.", createdAt: t - 12*D, lastTouchAt: t - 0.5*3600000 },
+    { id: uid(), name: "Dave Patel", email: "dave.patel@gmail.com", phone: "(973) 555-0158", company: "", tags: ["repeat"], ltv: 3200, source: "Phone", status: "active", notes: "Prefers texts.", createdAt: t - 90*D, lastTouchAt: t - 3600000 },
+    { id: uid(), name: "Kate Moore", email: "kate.m@example.com", phone: "(973) 555-0175", company: "", tags: ["referred"], ltv: 1180, source: "Yelp", status: "active", notes: "Referred by Sarah Boone.", createdAt: t - 40*D, lastTouchAt: t - 6*3600000 },
+    { id: uid(), name: "Sarah Boone", email: "sboone@example.com", phone: "(973) 555-0180", company: "", tags: ["vip"], ltv: 4520, source: "Referral", status: "active", notes: "Referred 3 friends.", createdAt: t - 200*D, lastTouchAt: t - 14*D },
+    { id: uid(), name: "Alex Rivera", email: "arivera@example.com", phone: "(973) 555-0194", company: "", tags: [], ltv: 0, source: "Referral", status: "prospect", notes: "Warm intro from Sarah.", createdAt: t - 3*D, lastTouchAt: t - 3*D },
+    { id: uid(), name: "Mike Duran", email: "mduran@example.com", phone: "(973) 555-0208", company: "", tags: [], ltv: 620, source: "Google Ads", status: "active", notes: "", createdAt: t - 60*D, lastTouchAt: t - 20*D },
+    { id: uid(), name: "J. Delgado", email: "jd@subs.local", phone: "(973) 555-0221", company: "Delgado Subs", tags: ["vendor"], ltv: 0, source: "-", status: "vendor", notes: "Missing W-9.", createdAt: t - 180*D, lastTouchAt: t - 10*D }
+  ];
+  const [c_mia, c_dave, c_kate, c_sarah, c_alex, c_mike, c_jd] = contacts;
+
+  const deals = [
+    { id: uid(), contactId: c_mia.id, title: "Ridgeline HVAC swap", stage: "Quoted", value: 7400, source: "Web chat", expectedClose: t + 5*D, notes: "Board meeting Thu.", createdAt: t - 8*D },
+    { id: uid(), contactId: c_dave.id, title: "Furnace repair", stage: "Won", value: 620, source: "Phone", expectedClose: t - 1*D, notes: "Paid at time of service.", createdAt: t - 3*D },
+    { id: uid(), contactId: c_kate.id, title: "Duct cleaning bundle", stage: "Won", value: 385, source: "Yelp", expectedClose: t - 5*D, notes: "", createdAt: t - 12*D },
+    { id: uid(), contactId: c_alex.id, title: "Full system quote", stage: "New", value: 0, source: "Referral", expectedClose: t + 14*D, notes: "Intro sent.", createdAt: t - 2*D }
+  ];
+
+  const leads = [
+    { id: uid(), contactId: c_mia.id, source: "Web chat", score: 98, intent: ["opened 3 emails","downloaded pricing"], nextStep: "Book Tue call", status: "hot", capturedAt: t - 12*3600000 },
+    { id: uid(), contactId: c_dave.id, source: "Phone", score: 92, intent: ["requested same-day"], nextStep: "Dispatched", status: "converted", capturedAt: t - 24*3600000 },
+    { id: uid(), contactId: c_kate.id, source: "Yelp", score: 85, intent: ["requested quote"], nextStep: "Draft sent", status: "warm", capturedAt: t - 3*D },
+    { id: uid(), contactId: c_mike.id, source: "Google Ads", score: 78, intent: ["filled form","did not book"], nextStep: "Nurture", status: "cold", capturedAt: t - 8*D },
+    { id: uid(), contactId: c_alex.id, source: "Referral", score: 72, intent: ["warm intro"], nextStep: "Intro email", status: "warm", capturedAt: t - 2*D }
+  ];
+
+  const invoices = [
+    { id: uid(), contactId: c_mia.id, number: "1104", items: [{desc:"HVAC swap - proposal", qty:1, unitPrice:7400}], amount: 7400, sentAt: null, dueAt: t + 25*D, status: "draft", reminders: [], notes: "Awaiting your review." },
+    { id: uid(), contactId: c_kate.id, number: "1103", items: [{desc:"Duct cleaning bundle", qty:1, unitPrice:385}], amount: 385, sentAt: t - 6*D, dueAt: t - 1*D, status: "overdue", reminders: [], notes: "" },
+    { id: uid(), contactId: c_dave.id, number: "1102", items: [{desc:"Furnace repair", qty:1, unitPrice:620}], amount: 620, sentAt: t - 7*D, dueAt: t + 23*D, status: "paid", paidAt: t - 6*D, reminders: [], notes: "" },
+    { id: uid(), contactId: c_sarah.id, number: "1101", items: [{desc:"Annual maintenance", qty:1, unitPrice:1240}], amount: 1240, sentAt: t - 14*D, dueAt: t - 4*D, status: "overdue", reminders: [], notes: "" },
+    { id: uid(), contactId: c_mike.id, number: "1100", items: [{desc:"Tune-up", qty:1, unitPrice:79}], amount: 79, sentAt: t - 18*D, dueAt: t + 12*D, status: "paid", paidAt: t - 15*D, reminders: [], notes: "" }
+  ];
+
+  const payments = [
+    { id: uid(), invoiceId: invoices[2].id, amount: 620, method: "Card", processor: "PayPal", date: t - 6*D },
+    { id: uid(), invoiceId: invoices[4].id, amount: 79, method: "Card", processor: "PayPal", date: t - 15*D }
+  ];
+
+  const products = [
+    { id: uid(), sku: "HF-101", name: "Furnace filter 20x25", unitPrice: 22, cost: 12, onHand: 48, reorderAt: 40, status: "ok" },
+    { id: uid(), sku: "CAP-01", name: "Capacitor 45MFD", unitPrice: 34, cost: 14, onHand: 3, reorderAt: 10, status: "low" },
+    { id: uid(), sku: "THRM-8", name: "Nest Learning Thermostat", unitPrice: 249, cost: 175, onHand: 12, reorderAt: 5, status: "ok" },
+    { id: uid(), sku: "DUCT-A", name: "Duct cleaning kit", unitPrice: 89, cost: 44, onHand: 1, reorderAt: 2, status: "low" },
+    { id: uid(), sku: "SVC-TU", name: "Tune-up service", unitPrice: 129, cost: 35, onHand: 9999, reorderAt: 0, status: "service" }
+  ];
+
+  const contracts = [
+    { id: uid(), contactId: c_mia.id, title: "Ridgeline MSA v2", type: "MSA", status: "awaiting_signature", risks: ["Payment terms Net 60 (recommend Net 30)","Auto-renewal with no notice window"], uploadedAt: t - 3*D, notes: "" },
+    { id: uid(), contactId: c_jd.id, title: "Subcontractor W-9 (Delgado)", type: "W-9", status: "missing_info", risks: ["Missing SSN"], uploadedAt: t - 30*D, notes: "" },
+    { id: uid(), contactId: c_kate.id, title: "Kate Moore SOW", type: "SOW", status: "signed", risks: [], uploadedAt: t - 20*D, signedAt: t - 18*D, notes: "" }
+  ];
+
+  const policies = [
+    { id: uid(), type: "General Liability", carrier: "Hartford", coverage: "$1M / $2M", premium: 1450, renewsAt: t + 100*D },
+    { id: uid(), type: "Auto (Fleet)", carrier: "Progressive Commercial", coverage: "$1M CSL", premium: 3200, renewsAt: t + 26*D },
+    { id: uid(), type: "Workers Comp", carrier: "State Fund", coverage: "Class 5183", premium: 2100, renewsAt: t + 165*D },
+    { id: uid(), type: "Umbrella", carrier: "Hartford", coverage: "$2M", premium: 890, renewsAt: t + 100*D }
+  ];
+
+  const reviews = [
+    { id: uid(), source: "Google", rating: 5, text: "Troy and his crew were fast and clean. Sophia even called to confirm.", customer: "Sarah B.", replyDraft: "", replySentAt: t - 2*3600000, status: "replied", receivedAt: t - 3*3600000 },
+    { id: uid(), source: "Yelp", rating: 4, text: "Great service, wish they answered the phone faster.", customer: "Mike D.", replyDraft: "Thanks Mike - we appreciate the honest feedback. Our new after-hours coverage should fix that. Come back anytime.", replySentAt: null, status: "draft", receivedAt: t - 8*3600000 },
+    { id: uid(), source: "Google", rating: 5, text: "Best HVAC service in Newark. Booked online in 2 minutes.", customer: "Kate M.", replyDraft: "", replySentAt: t - 25*3600000, status: "replied", receivedAt: t - 26*3600000 }
+  ];
+
+  const calls = [
+    { id: uid(), direction: "inbound", fromNumber: c_mia.phone, contactId: c_mia.id, handledBy: "Sophia", outcome: "Booked Tue 10am", transcript: "Follow-up on Ridgeline estimate.", when: t - 12*60000 },
+    { id: uid(), direction: "inbound", fromNumber: "+1 (555) 210-9992", contactId: null, handledBy: "Sophia", outcome: "Blocked (spam)", transcript: "-", when: t - 35*60000 },
+    { id: uid(), direction: "inbound", fromNumber: c_dave.phone, contactId: c_dave.id, handledBy: "You", outcome: "Dispatch today", transcript: "Furnace not heating.", when: t - 3600000 }
+  ];
+
+  const emails = [
+    { id: uid(), direction: "inbound", fromEmail: c_mia.email, contactId: c_mia.id, subject: "Re: Estimate", snippet: "Did you get a chance to send that estimate?", draft: "Absolutely - Tuesday 10:00 works. I will send a calendar invite and pre-share the scope so we can move fast.", sentAt: null, when: t - 12*60000 },
+    { id: uid(), direction: "inbound", fromEmail: c_sarah.email, contactId: c_sarah.id, subject: "Invoice question", snippet: "Quick question about invoice 1101.", draft: "", sentAt: null, when: t - 3600000 }
+  ];
+
+  const chats = [
+    { id: uid(), contactId: null, transcript: "Furnace humming - same-day? 07104 after 3pm.", status: "in_progress", when: t - 4*60000, handoffTo: null }
+  ];
+
+  const posts = [
+    { id: uid(), channel: "Instagram", content: "5 signs your furnace needs a tune-up (a thread).", scheduledAt: t + 1*D, publishedAt: null, status: "queued" },
+    { id: uid(), channel: "Email", content: "$79 furnace tune-up + priority service (this week only).", scheduledAt: t + 3*D, publishedAt: null, status: "queued" },
+    { id: uid(), channel: "Facebook", content: "Customer story: how we saved Kate M. from a mid-winter breakdown.", scheduledAt: t + 5*D, publishedAt: null, status: "queued" }
+  ];
+
+  const funnels = [
+    { id: uid(), name: "Free estimate", desc: "Lead > estimate call > close", status: "live", inFlight: 12 },
+    { id: uid(), name: "Emergency call", desc: "Ad > chat > dispatch", status: "live", inFlight: 3 },
+    { id: uid(), name: "Referral flywheel", desc: "Post-service > review > referral", status: "live", inFlight: 0 },
+    { id: uid(), name: "Winter tune-up", desc: "Email + Google > book online", status: "test", inFlight: 0 },
+    { id: uid(), name: "Duct cleaning bundle", desc: "Upsell after tune-up", status: "draft", inFlight: 0 }
+  ];
+
+  const tasks = [
+    { id: uid(), title: "Approve estimate for Ridgeline", description: "Sent by Sophia. $7,400. Review and send.", dueAt: t + 4*3600000, priority: "high", module: "invoicing", status: "open" },
+    { id: uid(), title: "Sign W-9 for J. Delgado", description: "Missing SSN. Follow-up sent.", dueAt: t + 24*3600000, priority: "med", module: "contracts", status: "open" },
+    { id: uid(), title: "Review Q3 estimated tax", description: "$4,120 due Sep 15.", dueAt: t + 30*D, priority: "med", module: "taxes", status: "open" }
+  ];
+
+  const business = {
+    name: "Northstar Home Services",
+    industry: "Home services (HVAC)",
+    size: "Solo + 2 techs",
+    email: "hello@northstar.local",
+    phone: "(973) 555-0100",
+    hours: { start: "08:00", end: "17:00" },
+    voice: {
+      tone: "friendly and direct, no exclamation points",
+      rules: [
+        "Never use exclamation points.",
+        "Sign off with just 'Troy'.",
+        "Ask about timeline before quoting.",
+        "Short sentences. No fancy words."
+      ],
+      samples: [
+        "Hey Sarah - Thanks for the call earlier. Attached is the estimate we talked through. Any questions, ping me. - Troy"
+      ]
+    }
+  };
+
+  return {
+    business,
+    contacts, deals, leads, invoices, payments, products, contracts,
+    policies, reviews, calls, emails, chats, posts, tasks, funnels,
+    activity: [],
+    onboarded: true
+  };
+}
+
+/* ===================== Automation engine ===================== */
+const Automation = {
+  rules: [],
+  register(rule) { this.rules.push(rule); },
+  tick() {
+    if (!Store.state) return;
+    this.rules.forEach(r => {
+      if (!r.enabled) return;
+      try { r.check(Store.state); } catch(e) { console.warn("Automation error:", r.id, e); }
+    });
+  },
+  running: false,
+  start() {
+    if (this.running) return;
+    this.running = true;
+    setInterval(() => this.tick(), 30000);
+    // Kick off shortly after boot
+    setTimeout(() => this.tick(), 1500);
+  }
+};
+
+/* Rule: chase overdue invoices */
+Automation.register({
+  id: "invoice-chase",
+  enabled: true,
+  name: "Chase overdue invoices",
+  module: "invoicing",
+  check(s) {
+    const t = daysBetween;
+    const threshold = s.settings.thresholds.invoiceOverdueChaseDays || 5;
+    const max = s.settings.thresholds.invoiceMaxChases || 3;
+    const mode = s.settings.autonomy.sendInvoiceReminders;
+    if (mode === "never") return;
+    s.invoices.forEach(inv => {
+      if (inv.status !== "overdue") return;
+      if ((inv.reminders||[]).length >= max) return;
+      const lastAction = (inv.reminders||[]).length > 0 ? inv.reminders[inv.reminders.length-1].sentAt : (inv.sentAt||inv.dueAt);
+      if (t(lastAction, now()) < threshold) return;
+      const contact = s.contacts.find(c => c.id === inv.contactId);
+      const draft = "Hi " + (contact?contact.name.split(" ")[0]:"there") + " - just a friendly nudge on invoice #" + inv.number + " (" + fmt$(inv.amount) + "). Would you be able to send it over this week? Any questions I can answer? - " + (s.business.name.split(" ")[0] || "");
+      const reminder = { id: uid(), draft, sentAt: null, mode };
+      Store.update(st => {
+        const i = st.invoices.find(x => x.id === inv.id);
+        if (!i) return;
+        i.reminders = i.reminders || [];
+        if (mode === "auto") {
+          reminder.sentAt = now();
+          i.reminders.push(reminder);
+          st.activity.unshift({ id: uid(), when: now(), module: "invoicing", action: "reminder_sent", target: inv.number, actor: "Sophia", summary: "Chased " + inv.number + " (" + fmt$(inv.amount) + ")" });
+        } else {
+          i.reminders.push(reminder);
+          st.activity.unshift({ id: uid(), when: now(), module: "invoicing", action: "reminder_drafted", target: inv.number, actor: "Sophia", summary: "Drafted chase for " + inv.number });
+        }
+      });
+    });
+  }
+});
+
+/* Rule: reply to reviews per autonomy */
+Automation.register({
+  id: "review-reply",
+  enabled: true,
+  name: "Reply to reviews",
+  module: "reviews",
+  check(s) {
+    const mode = s.settings.autonomy.replyReviews;
+    if (mode === "never") return;
+    s.reviews.forEach(r => {
+      if (r.replySentAt || r.status === "replied") return;
+      if (!r.replyDraft) {
+        // Draft it
+        const draft = r.rating >= 4
+          ? "Thanks " + (r.customer||"there") + " - we appreciate you taking the time. Ping us anytime. - " + (s.business.name.split(" ")[0]||"")
+          : "Thanks for the feedback, " + (r.customer||"there") + ". We'd like to make this right - I'll DM you directly. - " + (s.business.name.split(" ")[0]||"");
+        Store.update(st => {
+          const rr = st.reviews.find(x => x.id === r.id);
+          if (rr) { rr.replyDraft = draft; rr.status = "draft"; }
+          st.activity.unshift({ id: uid(), when: now(), module: "reviews", action: "reply_drafted", target: r.source + " " + (r.customer||""), actor: "Sophia", summary: "Drafted reply to " + r.rating + "-star review" });
+        });
+      }
+      if (mode === "auto" && r.rating >= 5) {
+        Store.update(st => {
+          const rr = st.reviews.find(x => x.id === r.id);
+          if (rr) { rr.replySentAt = now(); rr.status = "replied"; }
+          st.activity.unshift({ id: uid(), when: now(), module: "reviews", action: "reply_sent", target: r.source, actor: "Sophia", summary: "Auto-replied to 5-star review" });
+        });
+      }
+    });
+  }
+});
+
+/* Rule: low stock reorder draft */
+Automation.register({
+  id: "inventory-reorder",
+  enabled: true,
+  name: "Low stock reorder",
+  module: "inventory",
+  check(s) {
+    const mode = s.settings.autonomy.reorderInventory;
+    if (mode === "never") return;
+    s.products.forEach(p => {
+      if (p.status === "service") return;
+      if (p.onHand > p.reorderAt) return;
+      const key = "reorder-drafted-" + p.id;
+      if (s._flags && s._flags[key]) return;
+      Store.update(st => {
+        st._flags = st._flags || {};
+        st._flags[key] = now();
+        const prod = st.products.find(x => x.id === p.id);
+        if (prod) prod.status = "reorder_queued";
+        st.activity.unshift({ id: uid(), when: now(), module: "inventory", action: "reorder_drafted", target: p.sku, actor: "Sophia", summary: "Low stock on " + p.sku + " - reorder queued" });
+      });
+    });
+  }
+});
+
+/* Rule: invoice becomes overdue if past due date */
+Automation.register({
+  id: "invoice-status",
+  enabled: true,
+  name: "Mark invoices overdue",
+  module: "invoicing",
+  check(s) {
+    s.invoices.forEach(inv => {
+      if (inv.status === "paid") return;
+      if (inv.status === "draft") return;
+      if (inv.dueAt && inv.dueAt < now() && inv.status !== "overdue") {
+        Store.update(st => {
+          const i = st.invoices.find(x => x.id === inv.id);
+          if (i) i.status = "overdue";
+        });
+      }
+    });
+  }
+});
+
+/* Rule: score fresh leads */
+Automation.register({
+  id: "lead-score",
+  enabled: true,
+  name: "Score fresh leads",
+  module: "leads",
+  check(s) {
+    s.leads.forEach(l => {
+      if (l.score > 0) return;
+      let score = 50;
+      if (l.source === "Referral") score += 20;
+      if (l.source === "Web chat") score += 15;
+      if ((l.intent||[]).length > 0) score += 15;
+      Store.update(st => {
+        const ll = st.leads.find(x => x.id === l.id);
+        if (ll) ll.score = Math.min(100, score);
+      });
+    });
+  }
+});
+
+/* ===================== Sophia (intent handler + agent) ===================== */
+const Sophia = {
+  reply(query) {
+    const q = query.toLowerCase();
+    const s = Store.state;
+
+    if (/overdue|chase|invoice/.test(q)) {
+      const overdue = s.invoices.filter(i => i.status === "overdue");
+      const total = overdue.reduce((a,b) => a+b.amount, 0);
+      return { text: "You have <b>" + overdue.length + " overdue invoice(s)</b> totaling <b>" + fmt$(total) + "</b>. I can chase all of them - drafts are ready for you to review, or send now.",
+        actions: [
+          { label: "Review drafts", run: () => { go("invoicing"); toggleSophia(); } },
+          { label: "Send all chases", run: () => { Actions.chaseAllOverdue(); } }
+        ] };
+    }
+    if (/lead|hot|follow.up/.test(q)) {
+      const top = [...s.leads].sort((a,b) => b.score - a.score).slice(0,3);
+      const list = top.map(l => {
+        const c = s.contacts.find(x => x.id === l.contactId);
+        return "&bull; " + (c?c.name:"?") + " (" + l.score + ")";
+      }).join("<br>");
+      return { text: "Top leads to work today:<br>" + list, actions: [ { label: "Open Leads", run: () => { go("leads"); toggleSophia(); } } ] };
+    }
+    if (/(week|content|post|marketing)/.test(q)) {
+      const q2 = s.posts.filter(p => !p.publishedAt);
+      return { text: "You have <b>" + q2.length + " post(s) queued</b> for approval this week. Once you approve, they ship on schedule.",
+        actions: [ { label: "Approve week", run: () => { Actions.approveAllPosts(); } }, { label: "Open Marketing", run: () => { go("marketing"); toggleSophia(); } } ] };
+    }
+    if (/(close|month|reconcile)/.test(q)) {
+      const paid = s.payments.filter(p => p.date > now() - 30*86400000).reduce((a,b) => a+b.amount, 0);
+      return { text: "Last 30 days collected: <b>" + fmt$(paid) + "</b>. I'll queue a close packet - it takes ~3 minutes.", actions: [ { label: "Start close", run: () => { Actions.startClose(); } } ] };
+    }
+    if (/tax/.test(q)) {
+      const ytdRev = s.payments.reduce((a,b) => a+b.amount, 0);
+      const est = Math.round(ytdRev * 0.25);
+      return { text: "YTD collected: <b>" + fmt$(ytdRev) + "</b>. Rough Q est. tax at 25%: <b>" + fmt$(est) + "</b>. Actual tax varies - your CPA should confirm.",
+        actions: [ { label: "Open Taxes", run: () => { go("taxes"); toggleSophia(); } } ] };
+    }
+    if (/review/.test(q)) {
+      const pending = s.reviews.filter(r => !r.replySentAt);
+      return { text: "You have <b>" + pending.length + " review(s)</b> waiting on a reply. Drafts are ready.",
+        actions: [ { label: "Open Reviews", run: () => { go("reviews"); toggleSophia(); } } ] };
+    }
+    if (/inventory|stock|reorder/.test(q)) {
+      const low = s.products.filter(p => p.status !== "service" && p.onHand <= p.reorderAt);
+      return { text: "<b>" + low.length + " item(s)</b> low or below reorder point.",
+        actions: [ { label: "Open Inventory", run: () => { go("inventory"); toggleSophia(); } } ] };
+    }
+    if (/deploy|install|local/.test(q)) {
+      return { text: "You're ready to run this locally. Runs on your Mac/PC. Zero servers. Data stays on your computer.", actions: [ { label: "Open Deploy", run: () => { go("deploy"); toggleSophia(); } } ] };
+    }
+    if (/sophia|joolt|migrat|a2a|upgrade|presence|pro/.test(q)) {
+      return { text: "Two upgrade paths (both book-a-call, not self-serve): <b>Sophia Presence</b> (voice on your number) and <b>Sophia SMB Pro</b> (full automation + human partner).",
+        actions: [ { label: "Book a call", run: () => { window.open("https://joolt.io/agent-rep","_blank"); } } ] };
+    }
+    if (/help|what can you do|command/.test(q)) {
+      return { text: "I can: chase overdue invoices, follow up leads, draft replies, approve social posts, close months, prep taxes, and read your business at a glance. Try one:",
+        actions: [
+          { label: "Chase overdue", run: () => Sophia.autoAsk("Chase overdue invoices") },
+          { label: "Top leads", run: () => Sophia.autoAsk("Follow up hot leads") },
+          { label: "This week", run: () => Sophia.autoAsk("Draft this week content") }
+        ] };
+    }
+    // default
+    return { text: "Got it. Here's what's on my radar right now:<br>" +
+      "&bull; " + s.invoices.filter(i => i.status==="overdue").length + " overdue invoices<br>" +
+      "&bull; " + s.leads.filter(l => l.status !== "converted").length + " open leads<br>" +
+      "&bull; " + s.reviews.filter(r => !r.replySentAt).length + " reviews to reply<br>" +
+      "&bull; " + s.tasks.filter(t => t.status !== "done").length + " open tasks",
+      actions: [
+        { label: "Chase overdue", run: () => Sophia.autoAsk("Chase overdue invoices") },
+        { label: "Hot leads", run: () => Sophia.autoAsk("Follow up hot leads") }
+      ] };
+  },
+  autoAsk(q) {
+    document.getElementById("sophiaInput").value = q;
+    sendSophia();
+  },
+  actionRunners: {},
+  registerAction(id, fn) { this.actionRunners[id] = fn; },
+  runAction(id) { const fn = this.actionRunners[id]; if (fn) fn(); }
+};
+
+function toggleSophia() {
+  const el = document.getElementById("sophia");
+  el.classList.toggle("open");
+  if (el.classList.contains("open") && !document.getElementById("sophiaMsgs").children.length) {
+    Sophia.greet();
+  }
+}
+Sophia.greet = function() {
+  const s = Store.state;
+  const box = document.getElementById("sophiaMsgs");
+  const el = document.createElement("div");
+  el.className = "msg bot";
+  const overdue = s.invoices.filter(i => i.status==="overdue").length;
+  el.innerHTML = "Hi " + (s.business.name.split(" ")[0] || "there") + " - I'm Sophia. I'm watching your entire front office. Right now: <b>" + overdue + " overdue invoice(s)</b>, <b>" + s.leads.filter(l => l.status !== "converted").length + " open leads</b>, and <b>" + s.reviews.filter(r => !r.replySentAt).length + " review reply(s)</b> pending your OK." +
+    "<div class='actions'><span class='quick' onclick='Sophia.autoAsk(\"Chase overdue invoices\")'>Chase overdue</span><span class='quick' onclick='Sophia.autoAsk(\"Follow up hot leads\")'>Hot leads</span><span class='quick' onclick='Sophia.autoAsk(\"Close last month\")'>Close month</span><span class='quick' onclick='Sophia.autoAsk(\"Draft this week content\")'>This week</span></div>";
+  box.appendChild(el);
+};
+
+function sendSophia() {
+  const inp = document.getElementById("sophiaInput");
+  const q = inp.value.trim();
+  if (!q) return;
+  const box = document.getElementById("sophiaMsgs");
+  const u = document.createElement("div");
+  u.className = "msg user";
+  u.textContent = q;
+  box.appendChild(u);
+  inp.value = "";
+  box.scrollTop = box.scrollHeight;
+  setTimeout(() => {
+    const res = Sophia.reply(q);
+    const b = document.createElement("div");
+    b.className = "msg bot";
+    let html = res.text;
+    if (res.actions && res.actions.length) {
+      html += "<div class='actions'>" + res.actions.map((a,i) => {
+        const aid = "sa_" + uid();
+        Sophia.actionRunners[aid] = a.run;
+        return "<span class='quick' onclick='Sophia.runAction(\"" + aid + "\")'>" + escapeHtml(a.label) + "</span>";
+      }).join("") + "</div>";
+    }
+    b.innerHTML = html;
+    box.appendChild(b);
+    box.scrollTop = box.scrollHeight;
+  }, 300);
+}
+
+/* ===================== Actions (module operations) ===================== */
+const Actions = {
+  /* Contacts */
+  addContact() {
+    Modal.form({
+      title: "Add contact",
+      fields: [
+        { key: "name", label: "Full name", type: "text", required: true },
+        { key: "email", label: "Email", type: "email" },
+        { key: "phone", label: "Phone", type: "tel" },
+        { key: "company", label: "Company", type: "text" },
+        { key: "source", label: "Source", type: "select", options: ["Referral","Web chat","Phone","Google Ads","Yelp","Google","Facebook","Other"] },
+        { key: "notes", label: "Notes", type: "textarea" }
+      ],
+      submitLabel: "Add contact",
+      onSubmit: v => {
+        Store.update(s => {
+          s.contacts.push({ id: uid(), name: v.name, email: v.email||"", phone: v.phone||"", company: v.company||"", tags: [], ltv: 0, source: v.source||"Other", status: "prospect", notes: v.notes||"", createdAt: now(), lastTouchAt: now() });
+        });
+        toast("Contact added");
+        logActivity({ module: "crm", action: "contact_added", target: v.name, actor: "You", summary: "Added " + v.name });
+        rerender();
+      }
+    });
+  },
+  editContact(id) {
+    const c = Store.state.contacts.find(x => x.id === id);
+    if (!c) return;
+    Modal.form({
+      title: "Edit contact",
+      values: c,
+      fields: [
+        { key: "name", label: "Full name", type: "text", required: true },
+        { key: "email", label: "Email", type: "email" },
+        { key: "phone", label: "Phone", type: "tel" },
+        { key: "company", label: "Company", type: "text" },
+        { key: "source", label: "Source", type: "select", options: ["Referral","Web chat","Phone","Google Ads","Yelp","Google","Facebook","Other"] },
+        { key: "notes", label: "Notes", type: "textarea" }
+      ],
+      submitLabel: "Save",
+      onSubmit: v => {
+        Store.update(s => {
+          const cc = s.contacts.find(x => x.id === id);
+          if (cc) Object.assign(cc, v);
+        });
+        toast("Contact updated");
+        rerender();
+      }
+    });
+  },
+  deleteContact(id) {
+    if (!confirm("Delete this contact?")) return;
+    Store.update(s => { s.contacts = s.contacts.filter(x => x.id !== id); });
+    toast("Contact deleted");
+    logActivity({ module: "crm", action: "contact_deleted", target: id, actor: "You", summary: "Deleted contact" });
+    rerender();
+  },
+  viewContact(id) { state.contactDetailId = id; go("contact-detail"); },
+
+  /* Deals */
+  addDeal() {
+    const contacts = Store.state.contacts;
+    Modal.form({
+      title: "New deal",
+      fields: [
+        { key: "contactId", label: "Customer", type: "select", options: contacts.map(c => ({value: c.id, label: c.name})), required: true },
+        { key: "title", label: "Title", type: "text", required: true },
+        { key: "value", label: "Value ($)", type: "number" },
+        { key: "stage", label: "Stage", type: "select", options: ["New","Qualified","Quoted","Won","Lost"], required: true },
+        { key: "source", label: "Source", type: "select", options: ["Referral","Web chat","Phone","Google Ads","Yelp","Other"] },
+        { key: "notes", label: "Notes", type: "textarea" }
+      ],
+      submitLabel: "Create deal",
+      onSubmit: v => {
+        Store.update(s => {
+          s.deals.push({ id: uid(), contactId: v.contactId, title: v.title, stage: v.stage, value: Number(v.value)||0, source: v.source||"Other", expectedClose: now() + 14*86400000, notes: v.notes||"", createdAt: now() });
+        });
+        toast("Deal created");
+        logActivity({ module: "crm", action: "deal_created", target: v.title, actor: "You", summary: "Created deal " + v.title });
+        rerender();
+      }
+    });
+  },
+  moveStage(id, stage) {
+    Store.update(s => {
+      const d = s.deals.find(x => x.id === id);
+      if (d) d.stage = stage;
+    });
+    toast("Stage: " + stage);
+    rerender();
+  },
+  deleteDeal(id) {
+    if (!confirm("Delete this deal?")) return;
+    Store.update(s => { s.deals = s.deals.filter(x => x.id !== id); });
+    toast("Deal deleted");
+    rerender();
+  },
+
+  /* Leads */
+  convertLead(id) {
+    Store.update(s => {
+      const l = s.leads.find(x => x.id === id);
+      if (l) l.status = "converted";
+    });
+    toast("Lead marked converted");
+    rerender();
+  },
+  followUpLead(id) {
+    const l = Store.state.leads.find(x => x.id === id);
+    if (!l) return;
+    const c = Store.state.contacts.find(x => x.id === l.contactId);
+    Store.update(s => {
+      s.emails.unshift({ id: uid(), direction: "outbound", fromEmail: s.business.email, contactId: l.contactId, subject: "Following up", snippet: "Following up on our chat...", draft: "Hi " + (c?c.name.split(" ")[0]:"there") + " - checking in on your project. Are you still evaluating? Happy to answer any questions. - " + (s.business.name.split(" ")[0]||""), sentAt: null, when: now() });
+      const ll = s.leads.find(x => x.id === id);
+      if (ll) ll.nextStep = "Follow-up drafted";
+    });
+    toast("Follow-up drafted in Email");
+    logActivity({ module: "leads", action: "followup_drafted", target: c?c.name:"?", actor: "Sophia", summary: "Drafted follow-up for " + (c?c.name:"") });
+    rerender();
+  },
+
+  /* Invoices */
+  addInvoice() {
+    const contacts = Store.state.contacts;
+    Modal.form({
+      title: "New invoice",
+      fields: [
+        { key: "contactId", label: "Customer", type: "select", options: contacts.map(c => ({value: c.id, label: c.name})), required: true },
+        { key: "description", label: "Description", type: "text", required: true },
+        { key: "amount", label: "Amount ($)", type: "number", required: true },
+        { key: "dueDays", label: "Due in (days)", type: "number", value: 30 }
+      ],
+      submitLabel: "Create invoice",
+      onSubmit: v => {
+        Store.update(s => {
+          const n = String(1100 + s.invoices.length + 1);
+          s.invoices.unshift({ id: uid(), contactId: v.contactId, number: n, items: [{desc: v.description, qty:1, unitPrice: Number(v.amount)}], amount: Number(v.amount), sentAt: null, dueAt: now() + Number(v.dueDays||30)*86400000, status: "draft", reminders: [], notes: "" });
+        });
+        toast("Invoice drafted");
+        logActivity({ module: "invoicing", action: "invoice_drafted", target: v.description, actor: "You", summary: "Drafted invoice " + fmt$(v.amount) });
+        rerender();
+      }
+    });
+  },
+  sendInvoice(id) {
+    Store.update(s => {
+      const inv = s.invoices.find(x => x.id === id);
+      if (inv) { inv.status = "sent"; inv.sentAt = now(); }
+    });
+    toast("Invoice sent");
+    logActivity({ module: "invoicing", action: "invoice_sent", target: id, actor: "You", summary: "Sent invoice" });
+    rerender();
+  },
+  markPaid(id) {
+    const inv = Store.state.invoices.find(x => x.id === id);
+    if (!inv) return;
+    Store.update(s => {
+      const i = s.invoices.find(x => x.id === id);
+      if (i) { i.status = "paid"; i.paidAt = now(); }
+      s.payments.unshift({ id: uid(), invoiceId: id, amount: inv.amount, method: "Card", processor: "Manual", date: now() });
+    });
+    toast("Marked paid - $" + inv.amount);
+    logActivity({ module: "invoicing", action: "payment_recorded", target: inv.number, actor: "You", summary: "Payment recorded " + fmt$(inv.amount) });
+    rerender();
+  },
+  chaseInvoice(id) {
+    const inv = Store.state.invoices.find(x => x.id === id);
+    if (!inv) return;
+    const c = Store.state.contacts.find(x => x.id === inv.contactId);
+    Store.update(s => {
+      const i = s.invoices.find(x => x.id === id);
+      if (!i) return;
+      i.reminders = i.reminders || [];
+      i.reminders.push({ id: uid(), draft: "Chase for " + i.number, sentAt: now(), mode: "manual" });
+    });
+    toast("Chase sent to " + (c?c.name:"customer"));
+    logActivity({ module: "invoicing", action: "reminder_sent", target: inv.number, actor: "You", summary: "Manual chase " + inv.number });
+    rerender();
+  },
+  chaseAllOverdue() {
+    const overdue = Store.state.invoices.filter(i => i.status === "overdue");
+    overdue.forEach(inv => Actions.chaseInvoice(inv.id));
+    if (overdue.length === 0) toast("No overdue invoices");
+  },
+  deleteInvoice(id) {
+    if (!confirm("Delete this invoice?")) return;
+    Store.update(s => { s.invoices = s.invoices.filter(x => x.id !== id); });
+    toast("Invoice deleted");
+    rerender();
+  },
+
+  /* Products */
+  addProduct() {
+    Modal.form({
+      title: "Add product / service",
+      fields: [
+        { key: "sku", label: "SKU", type: "text", required: true },
+        { key: "name", label: "Name", type: "text", required: true },
+        { key: "unitPrice", label: "Unit price ($)", type: "number" },
+        { key: "cost", label: "Cost ($)", type: "number" },
+        { key: "onHand", label: "On hand", type: "number" },
+        { key: "reorderAt", label: "Reorder at", type: "number" }
+      ],
+      submitLabel: "Add",
+      onSubmit: v => {
+        Store.update(s => {
+          s.products.push({ id: uid(), sku: v.sku, name: v.name, unitPrice: Number(v.unitPrice)||0, cost: Number(v.cost)||0, onHand: Number(v.onHand)||0, reorderAt: Number(v.reorderAt)||0, status: "ok" });
+        });
+        toast("Product added");
+        rerender();
+      }
+    });
+  },
+  updateStock(id) {
+    const p = Store.state.products.find(x => x.id === id);
+    if (!p) return;
+    Modal.form({
+      title: "Update stock: " + p.name,
+      values: p,
+      fields: [
+        { key: "onHand", label: "On hand", type: "number", required: true },
+        { key: "reorderAt", label: "Reorder at", type: "number" }
+      ],
+      submitLabel: "Save",
+      onSubmit: v => {
+        Store.update(s => {
+          const pp = s.products.find(x => x.id === id);
+          if (pp) { pp.onHand = Number(v.onHand); pp.reorderAt = Number(v.reorderAt); pp.status = pp.onHand <= pp.reorderAt ? "low" : "ok"; }
+        });
+        toast("Stock updated");
+        rerender();
+      }
+    });
+  },
+
+  /* Reviews */
+  replyReview(id) {
+    const r = Store.state.reviews.find(x => x.id === id);
+    if (!r) return;
+    Modal.form({
+      title: "Reply to review (" + r.rating + "-star)",
+      values: { reply: r.replyDraft || "" },
+      fields: [
+        { key: "reply", label: "Reply", type: "textarea" }
+      ],
+      submitLabel: "Send reply",
+      onSubmit: v => {
+        Store.update(s => {
+          const rr = s.reviews.find(x => x.id === id);
+          if (rr) { rr.replyDraft = v.reply; rr.replySentAt = now(); rr.status = "replied"; }
+        });
+        toast("Reply sent");
+        logActivity({ module: "reviews", action: "reply_sent", target: r.source, actor: "You", summary: "Replied to " + r.rating + "-star review" });
+        rerender();
+      }
+    });
+  },
+  requestReviews() {
+    const paidRecent = Store.state.invoices.filter(i => i.status === "paid" && i.paidAt && (now() - i.paidAt < 30*86400000));
+    toast(paidRecent.length + " review requests queued");
+    logActivity({ module: "reviews", action: "requests_queued", target: "batch", actor: "Sophia", summary: paidRecent.length + " review requests queued" });
+  },
+
+  /* Emails */
+  sendEmail(id) {
+    Store.update(s => {
+      const e = s.emails.find(x => x.id === id);
+      if (e) e.sentAt = now();
+    });
+    toast("Email sent");
+    logActivity({ module: "email", action: "email_sent", target: id, actor: "You", summary: "Sent email" });
+    rerender();
+  },
+  discardEmail(id) {
+    Store.update(s => { s.emails = s.emails.filter(x => x.id !== id); });
+    rerender();
+  },
+  draftEmail() {
+    const contacts = Store.state.contacts;
+    Modal.form({
+      title: "New email",
+      fields: [
+        { key: "contactId", label: "To", type: "select", options: contacts.map(c => ({value: c.id, label: c.name + " (" + c.email + ")"})), required: true },
+        { key: "subject", label: "Subject", type: "text", required: true },
+        { key: "body", label: "Body", type: "textarea", required: true }
+      ],
+      submitLabel: "Save draft",
+      onSubmit: v => {
+        const c = contacts.find(x => x.id === v.contactId);
+        Store.update(s => {
+          s.emails.unshift({ id: uid(), direction: "outbound", fromEmail: s.business.email, contactId: v.contactId, subject: v.subject, snippet: v.body.slice(0,80), draft: v.body, sentAt: null, when: now() });
+        });
+        toast("Draft saved");
+        rerender();
+      }
+    });
+  },
+
+  /* Posts */
+  approveAllPosts() {
+    const q = Store.state.posts.filter(p => p.status === "queued");
+    Store.update(s => {
+      s.posts.forEach(p => { if (p.status === "queued") p.status = "approved"; });
+    });
+    toast(q.length + " posts approved for scheduled publish");
+    logActivity({ module: "marketing", action: "posts_approved", target: "week", actor: "You", summary: q.length + " posts approved" });
+    rerender();
+  },
+  addPost() {
+    Modal.form({
+      title: "New post",
+      fields: [
+        { key: "channel", label: "Channel", type: "select", options: ["Instagram","Facebook","LinkedIn","Email","Twitter/X","TikTok"], required: true },
+        { key: "content", label: "Content", type: "textarea", required: true },
+        { key: "days", label: "Publish in (days)", type: "number", value: 3 }
+      ],
+      submitLabel: "Add",
+      onSubmit: v => {
+        Store.update(s => {
+          s.posts.push({ id: uid(), channel: v.channel, content: v.content, scheduledAt: now() + Number(v.days||3)*86400000, publishedAt: null, status: "queued" });
+        });
+        toast("Post queued");
+        rerender();
+      }
+    });
+  },
+
+  /* Tasks */
+  addTask() {
+    Modal.form({
+      title: "New task",
+      fields: [
+        { key: "title", label: "Title", type: "text", required: true },
+        { key: "description", label: "Description", type: "textarea" },
+        { key: "priority", label: "Priority", type: "select", options: ["low","med","high"] },
+        { key: "module", label: "Module", type: "select", options: ["general","crm","invoicing","leads","marketing","contracts","taxes"] },
+        { key: "days", label: "Due in (days)", type: "number", value: 3 }
+      ],
+      submitLabel: "Create",
+      onSubmit: v => {
+        Store.update(s => {
+          s.tasks.unshift({ id: uid(), title: v.title, description: v.description||"", dueAt: now() + Number(v.days||3)*86400000, priority: v.priority||"med", module: v.module||"general", status: "open" });
+        });
+        toast("Task created");
+        rerender();
+      }
+    });
+  },
+  completeTask(id) {
+    Store.update(s => { const t = s.tasks.find(x => x.id === id); if (t) t.status = "done"; });
+    toast("Task done");
+    rerender();
+  },
+  deleteTask(id) {
+    Store.update(s => { s.tasks = s.tasks.filter(x => x.id !== id); });
+    rerender();
+  },
+
+  /* Close month */
+  startClose() {
+    toast("Close packet queued - takes ~3 min");
+    logActivity({ module: "finances", action: "close_started", target: "month", actor: "Sophia", summary: "Started month close" });
+    setTimeout(() => { toast("Close packet ready in Finances", "warn"); rerender(); }, 3000);
+  }
+};
+
+/* ===================== Modal system ===================== */
+const Modal = {
+  open() { document.getElementById("genericModal").classList.add("open"); },
+  close() { document.getElementById("genericModal").classList.remove("open"); },
+  form(opts) {
+    const values = Object.assign({}, opts.values || {});
+    opts.fields.forEach(f => { if (f.value !== undefined && values[f.key] === undefined) values[f.key] = f.value; });
+    document.getElementById("gmTitle").textContent = opts.title || "";
+    const body = document.getElementById("gmBody");
+    body.innerHTML = opts.fields.map(f => {
+      const val = values[f.key] !== undefined ? values[f.key] : "";
+      const req = f.required ? " required" : "";
+      let ctrl;
+      if (f.type === "textarea") {
+        ctrl = '<textarea id="fld_'+f.key+'" rows="3"'+req+'>'+escapeHtml(val)+'</textarea>';
+      } else if (f.type === "select") {
+        const opts2 = f.options.map(o => {
+          if (typeof o === "string") return '<option value="'+escapeHtml(o)+'"'+(val===o?' selected':'')+'>'+escapeHtml(o)+'</option>';
+          return '<option value="'+escapeHtml(o.value)+'"'+(val===o.value?' selected':'')+'>'+escapeHtml(o.label)+'</option>';
+        }).join("");
+        ctrl = '<select id="fld_'+f.key+'"'+req+'>'+opts2+'</select>';
+      } else {
+        const t = f.type || "text";
+        ctrl = '<input type="'+t+'" id="fld_'+f.key+'" value="'+escapeHtml(val)+'"'+req+' />';
+      }
+      return '<div class="field"><label>'+escapeHtml(f.label)+'</label>'+ctrl+'</div>';
+    }).join("");
+    const foot = document.getElementById("gmFooter");
+    foot.innerHTML = '<button class="btn ghost" onclick="Modal.close()">Cancel</button><button class="btn primary" id="gmSubmit">'+escapeHtml(opts.submitLabel||"Save")+'</button>';
+    document.getElementById("gmSubmit").onclick = () => {
+      const v = {};
+      let ok = true;
+      opts.fields.forEach(f => {
+        const el = document.getElementById("fld_"+f.key);
+        if (!el) return;
+        v[f.key] = el.value;
+        if (f.required && !el.value) { ok = false; el.style.borderColor = "var(--danger)"; }
+      });
+      if (!ok) { toast("Fill required fields", "error"); return; }
+      Modal.close();
+      opts.onSubmit(v);
+    };
+    Modal.open();
+  }
+};
+
+/* ===================== Router + page renderers ===================== */
+const state = { page: "dashboard", contactDetailId: null };
+
+const pages = {};
+
+pages.dashboard = () => {
+  const s = Store.state;
+  const cash = s.payments.reduce((a,b) => a+b.amount, 0);
+  const mtd = s.payments.filter(p => { const d = new Date(p.date); const n = new Date(); return d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear(); }).reduce((a,b) => a+b.amount, 0);
+  const openLeads = s.leads.filter(l => l.status !== "converted").length;
+  const avgRating = s.reviews.length ? (s.reviews.reduce((a,b) => a+b.rating, 0) / s.reviews.length).toFixed(1) : "-";
+
+  const overdue = s.invoices.filter(i => i.status === "overdue");
+  const overdueAmt = overdue.reduce((a,b) => a+b.amount, 0);
+
+  const needsYou = [];
+  s.invoices.filter(i => i.status === "draft").forEach(i => {
+    const c = s.contacts.find(x => x.id === i.contactId);
+    needsYou.push({ title: "Approve invoice for " + (c?c.name:"?"), sub: fmt$(i.amount) + " - drafted by Sophia", page: "invoicing" });
+  });
+  s.reviews.filter(r => !r.replySentAt && r.replyDraft).forEach(r => {
+    needsYou.push({ title: "Approve review reply", sub: r.source + " " + r.rating + "-star from " + r.customer, page: "reviews" });
+  });
+  s.tasks.filter(t => t.status !== "done").slice(0,4).forEach(t => {
+    needsYou.push({ title: t.title, sub: t.description||("Due " + fmtDate(t.dueAt)), page: t.module==="general"?"dashboard":t.module });
+  });
+
+  const sophiaDid = s.activity.slice(0, 6);
+
+  return `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Good morning, ${escapeHtml(s.business.name.split(" ")[0]||"there")}</h1>
+        <div class="page-sub">Here's what Sophia handled and what needs you today.</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn ghost" onclick="rerender()">Refresh</button>
+        <button class="btn primary" onclick="toggleSophia()">Ask Sophia</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Cash collected (all-time)</div><div class="val">${fmt$(cash)}</div><div class="delta">${s.payments.length} payments</div></div>
+      <div class="kpi"><div class="lbl">Revenue MTD</div><div class="val">${fmt$(mtd)}</div><div class="delta up">${s.payments.filter(p => { const d = new Date(p.date); const n = new Date(); return d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear(); }).length} paid</div></div>
+      <div class="kpi"><div class="lbl">Open leads</div><div class="val">${openLeads}</div><div class="delta">Ranked in Leads</div></div>
+      <div class="kpi"><div class="lbl">Rating</div><div class="val">${avgRating}${avgRating!=="-"?" ★":""}</div><div class="delta">${s.reviews.length} reviews</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-h"><div class="card-title">Sophia handled recently</div><span class="badge cyan">${sophiaDid.length}</span></div>
+        ${sophiaDid.length === 0 ? '<div class="empty"><div class="em">·</div>Sophia is watching. Activity will appear here as automations fire.</div>' : sophiaDid.map(a => `
+          <div class="list-item">
+            <div style="font-size:14px; width:20px;">•</div>
+            <div class="meta"><div class="title">${escapeHtml(a.summary)}</div><div class="sub">${escapeHtml(a.actor||"Sophia")} · ${fmtDateTime(a.when)}</div></div>
+          </div>`).join("")}
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="card-title">Needs your input</div><span class="badge amber">${needsYou.length}</span></div>
+        ${needsYou.length === 0 ? '<div class="empty"><div class="em">✓</div>Nothing needs you today.</div>' : needsYou.slice(0,6).map(n => `
+          <div class="list-item">
+            <div class="meta"><div class="title">${escapeHtml(n.title)}</div><div class="sub">${escapeHtml(n.sub)}</div></div>
+            <button class="btn sm" onclick="go('${n.page}')">Open</button>
+          </div>`).join("")}
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">Pipeline</div>
+        <div class="divider"></div>
+        ${["New","Qualified","Quoted","Won"].map(stage => {
+          const deals = s.deals.filter(d => d.stage === stage);
+          const val = deals.reduce((a,b) => a+b.value, 0);
+          const max = Math.max(1, ...s.deals.map(d => d.value));
+          return `<div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>${stage}</span><span>${deals.length} · ${fmt$(val)}</span></div>
+            <div class="bar"><span style="width:${Math.min(100, (val/max)*100)}%"></span></div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="card">
+        <div class="card-title">Cash health</div>
+        <div class="divider"></div>
+        <div class="list-item" style="padding:8px 0;"><div class="meta"><div class="sub">Overdue AR</div><div class="title">${fmt$(overdueAmt)} · ${overdue.length}</div></div><span class="badge ${overdue.length>0?'amber':'green'}">${overdue.length>0?"Chase":"OK"}</span></div>
+        <div class="list-item" style="padding:8px 0;"><div class="meta"><div class="sub">Payments (30d)</div><div class="title">${fmt$(mtd)}</div></div><span class="badge green">✓</span></div>
+        <div class="list-item" style="padding:8px 0;"><div class="meta"><div class="sub">Insurance</div><div class="title">${s.policies.length} policies</div></div><span class="badge green">Tracked</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">This week</div>
+        <div class="divider"></div>
+        ${s.tasks.filter(t => t.status !== "done").slice(0,5).map(t => `
+          <div class="list-item" style="padding:8px 0;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${t.priority==="high"?"var(--danger)":t.priority==="med"?"var(--warn)":"var(--muted)"};"></div>
+            <div class="meta"><div class="title">${escapeHtml(t.title)}</div><div class="sub">Due ${fmtDate(t.dueAt)}</div></div>
+            <button class="btn sm" onclick="Actions.completeTask('${t.id}')">Done</button>
+          </div>`).join("") || '<div class="empty" style="padding:20px;"><div class="em">✓</div>All clear.</div>'}
+        <button class="btn sm" style="margin-top:8px;" onclick="Actions.addTask()">+ Add task</button>
+      </div>
+    </div>
+  `;
+};
+
+pages.phone = () => {
+  const s = Store.state;
+  const calls = s.calls.slice().sort((a,b) => b.when - a.when);
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Phone</h1><div class="page-sub">Sophia answers when you can't. Every call is transcribed.</div></div>
+      <div class="page-actions"><button class="btn primary">Auto-answer: ${s.settings.autonomy.answerPhone==="auto"?"ON":"OFF"}</button></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Calls (all)</div><div class="val">${calls.length}</div></div>
+      <div class="kpi"><div class="lbl">Sophia handled</div><div class="val">${calls.filter(c => c.handledBy==="Sophia").length}</div></div>
+      <div class="kpi"><div class="lbl">Missed</div><div class="val">${calls.filter(c => c.outcome && c.outcome.toLowerCase().includes("miss")).length}</div></div>
+      <div class="kpi"><div class="lbl">Booked from calls</div><div class="val">${calls.filter(c => (c.outcome||"").toLowerCase().includes("book")).length}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-title">Recent calls</div></div>
+      ${calls.length === 0 ? '<div class="empty"><div class="em">☎</div>No calls yet. Configure Twilio in Settings to route your phone here.</div>' : `<table class="data">
+        <thead><tr><th>Caller</th><th>Reason</th><th>Handled by</th><th>Outcome</th><th>When</th></tr></thead>
+        <tbody>${calls.map(c => {
+          const contact = s.contacts.find(x => x.id === c.contactId);
+          return `<tr><td>${escapeHtml(contact?contact.name:c.fromNumber)}</td><td>${escapeHtml(c.transcript||"-")}</td><td>${c.handledBy==="Sophia"?'<span class="badge cyan">Sophia</span>':escapeHtml(c.handledBy)}</td><td>${escapeHtml(c.outcome||"-")}</td><td>${fmtDateTime(c.when)}</td></tr>`;
+        }).join("")}</tbody>
+      </table>`}
+    </div>
+    <div class="card">
+      <div class="card-title">Sophia's greeting script</div>
+      <p style="color:var(--text-dim);font-size:13px;">"Hi, this is Sophia at ${escapeHtml(s.business.name)}. ${escapeHtml((s.business.name.split(" ")[0]||"the team"))} is in the field - happy to help you get scheduled or take a message. What's going on?"</p>
+      <button class="btn sm">Edit script</button>
+    </div>
+  `;
+};
+
+pages.email = () => {
+  const s = Store.state;
+  const inbound = s.emails.filter(e => e.direction === "inbound");
+  const outbound = s.emails.filter(e => e.direction === "outbound");
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Email</h1><div class="page-sub">Sophia drafts every reply. Review and send.</div></div>
+      <div class="page-actions">
+        <button class="btn" onclick="Actions.draftEmail()">Compose</button>
+        <button class="btn primary">Autonomy: ${s.settings.autonomy.draftEmails}</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-h"><div class="card-title">Inbound (${inbound.length})</div></div>
+        ${inbound.length === 0 ? '<div class="empty"><div class="em">✉</div>Nothing new. Sophia will draft as soon as email arrives.</div>' : inbound.map(e => {
+          const c = s.contacts.find(x => x.id === e.contactId);
+          return `<div class="draft-card">
+            <div class="draft-h"><b>${escapeHtml(c?c.name:e.fromEmail)}</b> <span class="sub">${escapeHtml(e.subject)} · ${fmtDateTime(e.when)}</span></div>
+            <div class="draft-body">"${escapeHtml(e.snippet)}"</div>
+            ${e.draft ? '<div style="border-top:1px dashed var(--border); padding-top:8px; margin-top:8px;"><div style="font-size:11px; color: var(--accent-2); margin-bottom:4px;">✧ Sophia drafted:</div><div class="draft-body">'+escapeHtml(e.draft)+'</div></div>' : ''}
+            <div class="draft-actions">
+              ${e.sentAt ? '<span class="badge green">Sent</span>' : `<button class="btn sm primary" onclick="Actions.sendEmail('${e.id}')">Send draft</button><button class="btn sm" onclick="Actions.discardEmail('${e.id}')">Discard</button>`}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="card-title">Outbound (${outbound.length})</div></div>
+        ${outbound.length === 0 ? '<div class="empty"><div class="em">✉</div>No drafts yet.</div>' : outbound.map(e => {
+          const c = s.contacts.find(x => x.id === e.contactId);
+          return `<div class="draft-card">
+            <div class="draft-h"><b>To ${escapeHtml(c?c.name:e.contactId)}</b> <span class="sub">${escapeHtml(e.subject)}</span></div>
+            <div class="draft-body">${escapeHtml(e.draft||e.snippet)}</div>
+            <div class="draft-actions">
+              ${e.sentAt ? '<span class="badge green">Sent ' + fmtDateTime(e.sentAt) + '</span>' : `<button class="btn sm primary" onclick="Actions.sendEmail('${e.id}')">Send</button><button class="btn sm" onclick="Actions.discardEmail('${e.id}')">Discard</button>`}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+};
+
+pages.webchat = () => {
+  const s = Store.state;
+  const chats = s.chats;
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Website chat</h1><div class="page-sub">Snippet on your site - Sophia captures leads 24/7.</div></div>
+      <div class="page-actions"><button class="btn">Copy embed code</button><button class="btn primary">Live ✓</button></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Active chats</div><div class="val">${chats.filter(c => c.status==="in_progress").length}</div></div>
+      <div class="kpi"><div class="lbl">Total (session)</div><div class="val">${chats.length}</div></div>
+      <div class="kpi"><div class="lbl">Handoffs to you</div><div class="val">${chats.filter(c => c.handoffTo).length}</div></div>
+      <div class="kpi"><div class="lbl">Autonomy</div><div class="val" style="font-size:14px;">${s.settings.autonomy.answerWebchat}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Conversations</div>
+      ${chats.length === 0 ? '<div class="empty"><div class="em">💬</div>No live chats. Drop the embed on your site to capture visitors.</div>' : chats.map(c => `
+        <div class="draft-card">
+          <div class="draft-h"><b>${c.contactId ? escapeHtml((s.contacts.find(x=>x.id===c.contactId)||{}).name || "Visitor") : "Anon visitor"}</b> <span class="sub">${fmtDateTime(c.when)}</span></div>
+          <div class="draft-body">${escapeHtml(c.transcript)}</div>
+          <div class="draft-actions">
+            <button class="btn sm">Take over</button>
+            <span class="badge ${c.status==="in_progress"?"cyan":"gray"}">${c.status}</span>
+          </div>
+        </div>`).join("")}
+    </div>
+  `;
+};
+
+pages.reviews = () => {
+  const s = Store.state;
+  const reviews = s.reviews.slice().sort((a,b) => b.receivedAt - a.receivedAt);
+  const avg = reviews.length ? (reviews.reduce((a,b) => a+b.rating, 0) / reviews.length).toFixed(1) : "-";
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Reviews</h1><div class="page-sub">Requests, replies, sentiment.</div></div>
+      <div class="page-actions"><button class="btn" onclick="Actions.requestReviews()">Request from paid</button></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Rating</div><div class="val">${avg}${avg!=="-"?" ★":""}</div></div>
+      <div class="kpi"><div class="lbl">Total reviews</div><div class="val">${reviews.length}</div></div>
+      <div class="kpi"><div class="lbl">Awaiting reply</div><div class="val">${reviews.filter(r => !r.replySentAt).length}</div></div>
+      <div class="kpi"><div class="lbl">Autonomy</div><div class="val" style="font-size:14px;">${s.settings.autonomy.replyReviews}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">All reviews</div>
+      ${reviews.length === 0 ? '<div class="empty"><div class="em">★</div>No reviews yet.</div>' : reviews.map(r => `
+        <div class="draft-card">
+          <div class="draft-h">
+            <div class="avatar" style="width:28px;height:28px;background:var(--grad);color:white;border-radius:50%;display:inline-grid;place-items:center;font-weight:700;font-size:12px;">${initials(r.customer)}</div>
+            <div><b>${escapeHtml(r.customer||"Anon")}</b> · ${escapeHtml(r.source)} · <span style="color:${r.rating>=4?"#FBBF24":"#F87171"};">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</span> <span class="sub">${fmtDateTime(r.receivedAt)}</span></div>
+          </div>
+          <div class="draft-body">"${escapeHtml(r.text)}"</div>
+          ${r.replyDraft ? '<div style="border-top:1px dashed var(--border); padding-top:8px; margin-top:8px;"><div style="font-size:11px; color:var(--accent-2); margin-bottom:4px;">✧ ' + (r.replySentAt ? 'Sent reply:' : 'Draft:') + '</div><div class="draft-body">'+escapeHtml(r.replyDraft)+'</div></div>' : ''}
+          <div class="draft-actions">
+            ${r.replySentAt ? '<span class="badge green">Replied ' + fmtDateTime(r.replySentAt) + '</span>' : `<button class="btn sm primary" onclick="Actions.replyReview('${r.id}')">Reply</button>`}
+          </div>
+        </div>`).join("")}
+    </div>
+  `;
+};
+
+pages.marketing = () => {
+  const s = Store.state;
+  const queued = s.posts.filter(p => p.status === "queued");
+  const approved = s.posts.filter(p => p.status === "approved");
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Marketing</h1><div class="page-sub">Sophia drafts the plan. You approve. She ships.</div></div>
+      <div class="page-actions">
+        <button class="btn" onclick="Actions.addPost()">New post</button>
+        <button class="btn primary" onclick="Actions.approveAllPosts()">Approve week (${queued.length})</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">This week's plan (${s.posts.length})</div>
+        ${s.posts.length === 0 ? '<div class="empty"><div class="em">◈</div>No posts yet. Add or ask Sophia to draft.</div>' : s.posts.map(p => `
+          <div class="list-item">
+            <span class="badge ${p.status==="queued"?"amber":p.status==="approved"?"green":"gray"}">${p.channel}</span>
+            <div class="meta"><div class="title">${escapeHtml(p.content)}</div><div class="sub">Scheduled ${fmtDate(p.scheduledAt)} · ${p.status}</div></div>
+            <button class="btn sm">Edit</button>
+          </div>`).join("")}
+      </div>
+      <div class="card">
+        <div class="card-title">Reach (30d)</div>
+        <div class="stat-tiny">
+          <div class="st"><b>${(s.posts.filter(p => p.publishedAt).length * 425).toLocaleString()}</b>Reach est.</div>
+          <div class="st"><b>${s.leads.length}</b>Leads</div>
+          <div class="st"><b>${s.leads.length ? "$"+Math.round(1200/(s.leads.length||1)) : "-"}</b>CPL</div>
+        </div>
+        <div class="divider"></div>
+        <p style="color:var(--text-dim); font-size:13px;">Once you approve and publish, Sophia tracks reach and refines the weekly plan.</p>
+      </div>
+    </div>
+  `;
+};
+
+pages.leads = () => {
+  const s = Store.state;
+  const leads = s.leads.slice().sort((a,b) => b.score - a.score);
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Leads</h1><div class="page-sub">Ranked by fit + intent. Call top 5. Sophia handles the rest.</div></div>
+      <div class="page-actions"><button class="btn primary">Auto-followup ON</button></div>
+    </div>
+    <div class="card">
+      ${leads.length === 0 ? '<div class="empty"><div class="em">◆</div>No leads yet. Web chat and phone will populate here.</div>' : `<table class="data">
+        <thead><tr><th>Score</th><th>Lead</th><th>Source</th><th>Intent</th><th>Next step</th><th></th></tr></thead>
+        <tbody>${leads.map(l => {
+          const c = s.contacts.find(x => x.id === l.contactId);
+          const badgeClass = l.score >= 90 ? "green" : l.score >= 75 ? "amber" : "gray";
+          return `<tr>
+            <td><span class="badge ${badgeClass}">${l.score}</span></td>
+            <td><span class="clickable" onclick="Actions.viewContact('${l.contactId}')"><span class="avatar">${initials(c?c.name:"?")}</span>${escapeHtml(c?c.name:"?")}</span></td>
+            <td>${escapeHtml(l.source)}</td>
+            <td style="color:var(--text-dim);">${(l.intent||[]).join(" · ")}</td>
+            <td>${escapeHtml(l.nextStep||"-")}</td>
+            <td>
+              ${l.status==="converted" ? '<span class="badge green">Converted</span>' : `<button class="btn sm" onclick="Actions.followUpLead('${l.id}')">Follow up</button><button class="btn sm" onclick="Actions.convertLead('${l.id}')">Convert</button>`}
+            </td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>`}
+    </div>
+  `;
+};
+
+pages.funnels = () => {
+  const s = Store.state;
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Funnels</h1><div class="page-sub">Ready-to-deploy funnels, tuned by Sophia.</div></div>
+    </div>
+    <div class="grid-3">
+      ${s.funnels.map(f => `
+        <div class="card" style="margin:0;">
+          <div style="width:8px;height:8px;border-radius:50%;background:${f.status==="live"?"var(--success)":f.status==="test"?"var(--warn)":"var(--muted)"};margin-bottom:8px;"></div>
+          <div class="card-title">${escapeHtml(f.name)}</div>
+          <p style="color:var(--text-dim); font-size:12px; margin:6px 0;">${escapeHtml(f.desc)}</p>
+          <div style="display:flex;justify-content:space-between; align-items:center;">
+            <span class="badge">${f.status}${f.inFlight?" · "+f.inFlight+" in flight":""}</span>
+          </div>
+        </div>`).join("")}
+    </div>
+  `;
+};
+
+pages.templates = () => `
+  <div class="page-header">
+    <div><h1 class="page-title">Templates</h1><div class="page-sub">Every asset you need, wired to your brand voice.</div></div>
+  </div>
+  <div class="grid-3">
+    ${[["Estimates","Word / PDF / DocuSign"],["Invoices","QuickBooks / PayPal"],["Emails","Nurture · follow-up · win-back"],["SMS scripts","Reminders · dispatch · reviews"],["Social posts","Canva · IG · FB · LinkedIn"],["Contracts","MSA · NDA · SOW · W-9"]].map(t => `
+      <div class="card" style="margin:0;">
+        <div class="card-title">${t[0]}</div>
+        <div style="color:var(--text-dim); font-size:12px; margin: 4px 0 10px;">${t[1]}</div>
+        <button class="btn sm">Open library</button>
+      </div>`).join("")}
+  </div>
+`;
+
+pages.crm = () => {
+  const s = Store.state;
+  const contacts = s.contacts.slice().sort((a,b) => b.lastTouchAt - a.lastTouchAt);
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">CRM</h1><div class="page-sub">Contacts, deals, and lifetime value.</div></div>
+      <div class="page-actions">
+        <button class="btn" onclick="Actions.addContact()">+ Contact</button>
+        <button class="btn primary" onclick="Actions.addDeal()">+ Deal</button>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Contacts</div><div class="val">${s.contacts.length}</div></div>
+      <div class="kpi"><div class="lbl">Open deals</div><div class="val">${s.deals.filter(d => d.stage!=="Won" && d.stage!=="Lost").length}</div><div class="delta">${fmt$(s.deals.filter(d => d.stage!=="Won" && d.stage!=="Lost").reduce((a,b) => a+b.value, 0))}</div></div>
+      <div class="kpi"><div class="lbl">Won (all-time)</div><div class="val">${fmt$(s.deals.filter(d => d.stage==="Won").reduce((a,b) => a+b.value, 0))}</div></div>
+      <div class="kpi"><div class="lbl">Avg LTV</div><div class="val">${fmt$(s.contacts.length ? s.contacts.reduce((a,b) => a+b.ltv, 0)/s.contacts.length : 0)}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-title">Contacts</div></div>
+      ${contacts.length === 0 ? '<div class="empty"><div class="em">◉</div>No contacts yet. Add your first or import from a CSV.</div>' : `<table class="data">
+        <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>LTV</th><th>Source</th><th></th></tr></thead>
+        <tbody>${contacts.map(c => `<tr>
+          <td><span class="avatar">${initials(c.name)}</span><span class="clickable" onclick="Actions.viewContact('${c.id}')">${escapeHtml(c.name)}</span></td>
+          <td>${escapeHtml(c.company||"-")}</td>
+          <td style="color:var(--text-dim);">${escapeHtml(c.email||"-")}</td>
+          <td style="color:var(--text-dim);">${escapeHtml(c.phone||"-")}</td>
+          <td>${fmt$(c.ltv)}</td>
+          <td><span class="badge">${escapeHtml(c.source)}</span></td>
+          <td>
+            <button class="btn sm" onclick="Actions.editContact('${c.id}')">Edit</button>
+            <button class="btn sm" onclick="Actions.deleteContact('${c.id}')">Del</button>
+          </td>
+        </tr>`).join("")}</tbody>
+      </table>`}
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-title">Deals</div></div>
+      ${s.deals.length === 0 ? '<div class="empty"><div class="em">◈</div>No deals yet.</div>' : `<table class="data">
+        <thead><tr><th>Deal</th><th>Customer</th><th>Stage</th><th>Value</th><th>Expected close</th><th></th></tr></thead>
+        <tbody>${s.deals.map(d => {
+          const c = s.contacts.find(x => x.id === d.contactId);
+          return `<tr>
+            <td>${escapeHtml(d.title)}</td>
+            <td>${escapeHtml(c?c.name:"?")}</td>
+            <td>
+              <select onchange="Actions.moveStage('${d.id}', this.value)" style="padding:4px 8px; font-size:12px;">
+                ${["New","Qualified","Quoted","Won","Lost"].map(st => `<option ${d.stage===st?"selected":""} value="${st}">${st}</option>`).join("")}
+              </select>
+            </td>
+            <td>${fmt$(d.value)}</td>
+            <td>${fmtDate(d.expectedClose)}</td>
+            <td><button class="btn sm" onclick="Actions.deleteDeal('${d.id}')">Del</button></td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>`}
+    </div>
+  `;
+};
+
+pages["contact-detail"] = () => {
+  const s = Store.state;
+  const c = s.contacts.find(x => x.id === state.contactDetailId);
+  if (!c) return '<div class="empty">Contact not found. <button class="btn sm" onclick="go(\'crm\')">Back to CRM</button></div>';
+  const deals = s.deals.filter(d => d.contactId === c.id);
+  const invoices = s.invoices.filter(i => i.contactId === c.id);
+  const calls = s.calls.filter(x => x.contactId === c.id);
+  const emails = s.emails.filter(x => x.contactId === c.id);
+  return `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">${escapeHtml(c.name)}</h1>
+        <div class="page-sub">${escapeHtml(c.company||"")} ${c.company?"·":""} ${escapeHtml(c.email||"")} ${c.email?"·":""} ${escapeHtml(c.phone||"")}</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn" onclick="go('crm')">← Back</button>
+        <button class="btn" onclick="Actions.editContact('${c.id}')">Edit</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">LTV</div><div class="val">${fmt$(c.ltv)}</div></div>
+      <div class="kpi"><div class="lbl">Deals</div><div class="val">${deals.length}</div></div>
+      <div class="kpi"><div class="lbl">Invoices</div><div class="val">${invoices.length}</div></div>
+      <div class="kpi"><div class="lbl">Last touch</div><div class="val" style="font-size:14px;">${fmtDateTime(c.lastTouchAt)}</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Deals</div>
+        ${deals.length === 0 ? '<div class="empty" style="padding:20px;">No deals for this contact.</div>' : deals.map(d => `
+          <div class="list-item"><div class="meta"><div class="title">${escapeHtml(d.title)}</div><div class="sub">${d.stage} · ${fmt$(d.value)}</div></div></div>`).join("")}
+      </div>
+      <div class="card">
+        <div class="card-title">Invoices</div>
+        ${invoices.length === 0 ? '<div class="empty" style="padding:20px;">No invoices yet.</div>' : invoices.map(i => `
+          <div class="list-item"><div class="meta"><div class="title">#${i.number} · ${fmt$(i.amount)}</div><div class="sub">${i.status}</div></div><button class="btn sm" onclick="go('invoicing')">Open</button></div>`).join("")}
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Calls (${calls.length})</div>
+        ${calls.map(x => `<div class="list-item"><div class="meta"><div class="title">${escapeHtml(x.outcome||"-")}</div><div class="sub">${fmtDateTime(x.when)} · ${x.handledBy}</div></div></div>`).join("") || '<div class="empty" style="padding:20px;">No calls.</div>'}
+      </div>
+      <div class="card">
+        <div class="card-title">Emails (${emails.length})</div>
+        ${emails.map(x => `<div class="list-item"><div class="meta"><div class="title">${escapeHtml(x.subject)}</div><div class="sub">${fmtDateTime(x.when)} · ${x.direction}</div></div></div>`).join("") || '<div class="empty" style="padding:20px;">No emails.</div>'}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Notes</div>
+      <p style="color:var(--text);">${escapeHtml(c.notes||"-")}</p>
+    </div>
+  `;
+};
+
+pages.inventory = () => {
+  const s = Store.state;
+  const products = s.products.slice();
+  const low = products.filter(p => p.status !== "service" && p.onHand <= p.reorderAt);
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Inventory</h1><div class="page-sub">Parts, products, services. Low-stock reorder handled.</div></div>
+      <div class="page-actions"><button class="btn primary" onclick="Actions.addProduct()">+ Item</button></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">SKUs</div><div class="val">${products.length}</div></div>
+      <div class="kpi"><div class="lbl">Value on hand</div><div class="val">${fmt$(products.filter(p=>p.status!=="service").reduce((a,b) => a+b.onHand*b.cost, 0))}</div></div>
+      <div class="kpi"><div class="lbl">Low stock</div><div class="val">${low.length}</div>${low.length>0?'<div class="delta amber">Reorder queued</div>':""}</div>
+      <div class="kpi"><div class="lbl">Services</div><div class="val">${products.filter(p => p.status==="service").length}</div></div>
+    </div>
+    <div class="card">
+      ${products.length === 0 ? '<div class="empty"><div class="em">▤</div>No items yet.</div>' : `<table class="data">
+        <thead><tr><th>SKU</th><th>Item</th><th>On hand</th><th>Reorder at</th><th>Unit price</th><th>Status</th><th></th></tr></thead>
+        <tbody>${products.map(p => `<tr>
+          <td><b>${escapeHtml(p.sku)}</b></td>
+          <td>${escapeHtml(p.name)}</td>
+          <td>${p.status==="service"?"∞":p.onHand}</td>
+          <td>${p.reorderAt||"-"}</td>
+          <td>${fmt$(p.unitPrice)}</td>
+          <td><span class="badge ${p.status==="low"||p.status==="reorder_queued"?"amber":p.status==="service"?"cyan":"green"}">${p.status.replace("_"," ")}</span></td>
+          <td><button class="btn sm" onclick="Actions.updateStock('${p.id}')">Update</button></td>
+        </tr>`).join("")}</tbody>
+      </table>`}
+    </div>
+  `;
+};
+
+pages.invoicing = () => {
+  const s = Store.state;
+  const invoices = s.invoices.slice();
+  const overdue = invoices.filter(i => i.status === "overdue");
+  const outstanding = invoices.filter(i => i.status !== "paid" && i.status !== "draft").reduce((a,b) => a+b.amount, 0);
+  const collected30 = s.payments.filter(p => (now() - p.date) < 30*86400000).reduce((a,b) => a+b.amount, 0);
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Invoicing &amp; Payments</h1><div class="page-sub">Draft, send, chase, reconcile.</div></div>
+      <div class="page-actions">
+        <button class="btn" onclick="Actions.addInvoice()">+ Invoice</button>
+        <button class="btn primary" onclick="Actions.chaseAllOverdue()">Chase overdue (${overdue.length})</button>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Outstanding</div><div class="val">${fmt$(outstanding)}</div><div class="delta ${overdue.length>0?"amber":""}">${overdue.length} overdue</div></div>
+      <div class="kpi"><div class="lbl">Collected (30d)</div><div class="val">${fmt$(collected30)}</div></div>
+      <div class="kpi"><div class="lbl">Paid this month</div><div class="val">${s.payments.filter(p => { const d=new Date(p.date); const n=new Date(); return d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear(); }).length}</div></div>
+      <div class="kpi"><div class="lbl">Reminders sent</div><div class="val">${invoices.reduce((a,b) => a+(b.reminders?b.reminders.filter(r => r.sentAt).length:0), 0)}</div></div>
+    </div>
+    <div class="card">
+      ${invoices.length === 0 ? '<div class="empty"><div class="em">$</div>No invoices yet. Create your first.</div>' : `<table class="data">
+        <thead><tr><th>#</th><th>Customer</th><th>Amount</th><th>Sent</th><th>Due</th><th>Status</th><th>Reminders</th><th></th></tr></thead>
+        <tbody>${invoices.map(inv => {
+          const c = s.contacts.find(x => x.id === inv.contactId);
+          const badgeClass = inv.status==="paid"?"green":inv.status==="overdue"?"red":inv.status==="draft"?"amber":"cyan";
+          return `<tr>
+            <td><b>${escapeHtml(inv.number)}</b></td>
+            <td>${escapeHtml(c?c.name:"?")}</td>
+            <td>${fmt$(inv.amount)}</td>
+            <td>${fmtDate(inv.sentAt)}</td>
+            <td>${fmtDate(inv.dueAt)}</td>
+            <td><span class="badge ${badgeClass}">${inv.status}</span></td>
+            <td>${(inv.reminders||[]).length}</td>
+            <td>
+              ${inv.status==="draft" ? `<button class="btn sm primary" onclick="Actions.sendInvoice('${inv.id}')">Send</button>` : ""}
+              ${inv.status!=="paid" && inv.status!=="draft" ? `<button class="btn sm" onclick="Actions.markPaid('${inv.id}')">Mark paid</button>` : ""}
+              ${inv.status==="overdue" ? `<button class="btn sm" onclick="Actions.chaseInvoice('${inv.id}')">Chase</button>` : ""}
+              <button class="btn sm" onclick="Actions.deleteInvoice('${inv.id}')">Del</button>
+            </td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>`}
+    </div>
+  `;
+};
+
+pages.contracts = () => {
+  const s = Store.state;
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Contracts</h1><div class="page-sub">MSA, SOW, NDA, W-9 - reviewed in plain English.</div></div>
+      <div class="page-actions"><button class="btn">Upload</button></div>
+    </div>
+    <div class="card">
+      ${s.contracts.length === 0 ? '<div class="empty"><div class="em">§</div>No contracts yet.</div>' : `<table class="data">
+        <thead><tr><th>Document</th><th>Party</th><th>Type</th><th>Status</th><th>Risks</th></tr></thead>
+        <tbody>${s.contracts.map(x => {
+          const c = s.contacts.find(cn => cn.id === x.contactId);
+          const badgeClass = x.status==="signed"?"green":x.status==="missing_info"?"amber":"cyan";
+          return `<tr>
+            <td>${escapeHtml(x.title)}</td>
+            <td>${escapeHtml(c?c.name:"?")}</td>
+            <td>${escapeHtml(x.type)}</td>
+            <td><span class="badge ${badgeClass}">${x.status.replace("_"," ")}</span></td>
+            <td>${(x.risks||[]).length===0 ? "-" : x.risks.map(r => "· " + escapeHtml(r)).join("<br>")}</td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>`}
+    </div>
+  `;
+};
+
+pages.insurance = () => {
+  const s = Store.state;
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Insurance</h1><div class="page-sub">Policies, COIs, renewals - Sophia warns you 60 days out.</div></div>
+      <div class="page-actions"><button class="btn primary">Request COI</button></div>
+    </div>
+    <div class="grid-2">
+      ${s.policies.map(p => {
+        const soon = daysBetween(now(), p.renewsAt) < 60;
+        return `<div class="card" style="margin:0;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:10px; height:10px; border-radius:50%; background:${soon?"var(--warn)":"var(--success)"};"></div>
+            <div class="card-title" style="margin:0;">${escapeHtml(p.type)}</div>
+          </div>
+          <div style="color:var(--text-dim); font-size:12px; margin: 6px 0;">${escapeHtml(p.carrier)} · ${escapeHtml(p.coverage)}</div>
+          <div>Renews ${fmtDate(p.renewsAt)} · ${daysBetween(now(), p.renewsAt)}d</div>
+          <div style="color:var(--text-dim); font-size:12px;">Premium: ${fmt$(p.premium)}/yr</div>
+        </div>`;
+      }).join("") || '<div class="empty">No policies tracked.</div>'}
+    </div>
+  `;
+};
+
+pages.finances = () => {
+  const s = Store.state;
+  const revenueMTD = s.payments.filter(p => { const d = new Date(p.date); const n = new Date(); return d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear(); }).reduce((a,b) => a+b.amount, 0);
+  const revenueYTD = s.payments.filter(p => new Date(p.date).getFullYear() === new Date().getFullYear()).reduce((a,b) => a+b.amount, 0);
+  const overdue = s.invoices.filter(i => i.status==="overdue").reduce((a,b) => a+b.amount, 0);
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Finances</h1><div class="page-sub">Live P&amp;L, cash flow, forecast.</div></div>
+      <div class="page-actions"><button class="btn primary" onclick="Actions.startClose()">Close month</button></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Revenue MTD</div><div class="val">${fmt$(revenueMTD)}</div></div>
+      <div class="kpi"><div class="lbl">Revenue YTD</div><div class="val">${fmt$(revenueYTD)}</div></div>
+      <div class="kpi"><div class="lbl">Overdue AR</div><div class="val">${fmt$(overdue)}</div></div>
+      <div class="kpi"><div class="lbl">Cash collected (all)</div><div class="val">${fmt$(s.payments.reduce((a,b) => a+b.amount, 0))}</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Recent payments</div>
+        ${s.payments.length === 0 ? '<div class="empty" style="padding:20px;">No payments yet.</div>' : s.payments.slice(0,8).map(p => {
+          const inv = s.invoices.find(x => x.id === p.invoiceId);
+          const c = inv ? s.contacts.find(x => x.id === inv.contactId) : null;
+          return `<div class="list-item"><div class="meta"><div class="title">${fmt$(p.amount)} · ${escapeHtml(c?c.name:"?")}</div><div class="sub">${p.method} · ${escapeHtml(p.processor)} · ${fmtDate(p.date)}</div></div></div>`;
+        }).join("")}
+      </div>
+      <div class="card">
+        <div class="card-title">Sophia's watch</div>
+        <ul style="color:var(--text-dim); font-size:13px;">
+          <li>${s.invoices.filter(i => i.status==="overdue").length} invoices overdue - ${fmt$(overdue)} outstanding.</li>
+          <li>${s.policies.filter(p => daysBetween(now(), p.renewsAt) < 60).length} insurance policies renew in &lt; 60 days.</li>
+          <li>${s.products.filter(p => p.status!=="service" && p.onHand <= p.reorderAt).length} inventory items low.</li>
+        </ul>
+      </div>
+    </div>
+  `;
+};
+
+pages.taxes = () => {
+  const s = Store.state;
+  const ytd = s.payments.filter(p => new Date(p.date).getFullYear() === new Date().getFullYear()).reduce((a,b) => a+b.amount, 0);
+  const estQ = Math.round(ytd * 0.25 / 4);
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Taxes</h1><div class="page-sub">Quarterly estimates, 1099s, accountant packets.</div></div>
+      <div class="page-actions"><button class="btn primary">Prep accountant packet</button></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Rough Q est.</div><div class="val">${fmt$(estQ)}</div><div class="delta">Confirm with CPA</div></div>
+      <div class="kpi"><div class="lbl">YTD collected</div><div class="val">${fmt$(ytd)}</div></div>
+      <div class="kpi"><div class="lbl">1099 candidates</div><div class="val">${s.contacts.filter(c => c.status==="vendor").length}</div></div>
+      <div class="kpi"><div class="lbl">Deductions tracked</div><div class="val">-</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Year-end 1099 candidates (paid > $600)</div>
+      ${s.contacts.filter(c => c.status==="vendor").length === 0 ? '<div class="empty" style="padding:20px;">No vendor contacts yet.</div>' : `<table class="data">
+        <thead><tr><th>Vendor</th><th>Company</th><th>Status</th></tr></thead>
+        <tbody>${s.contacts.filter(c => c.status==="vendor").map(c => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.company||"")}</td><td>${escapeHtml(c.notes||"-")}</td></tr>`).join("")}</tbody>
+      </table>`}
+    </div>
+  `;
+};
+
+pages.automations = () => {
+  const rules = Automation.rules;
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Automations</h1><div class="page-sub">Rules that fire on your data. Toggle any of them.</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Active rules (${rules.filter(r => r.enabled).length}/${rules.length})</div>
+      ${rules.map(r => `
+        <div class="list-item">
+          <div class="meta"><div class="title">${escapeHtml(r.name)}</div><div class="sub">Module: ${escapeHtml(r.module)}</div></div>
+          <button class="btn sm ${r.enabled?"primary":""}" onclick="toggleRule('${r.id}')">${r.enabled?"ON":"OFF"}</button>
+        </div>`).join("")}
+    </div>
+    <div class="card">
+      <div class="card-title">Recent automation activity</div>
+      ${Store.state.activity.slice(0,10).map(a => `
+        <div class="list-item">
+          <span class="badge">${escapeHtml(a.module||"")}</span>
+          <div class="meta"><div class="title">${escapeHtml(a.summary)}</div><div class="sub">${escapeHtml(a.actor||"")} · ${fmtDateTime(a.when)}</div></div>
+        </div>`).join("") || '<div class="empty" style="padding:20px;">No activity yet.</div>'}
+    </div>
+  `;
+};
+
+pages.deploy = () => `
+  <div class="page-header">
+    <div><h1 class="page-title">Deploy</h1><div class="page-sub">Runs on your machine. Data stays with you.</div></div>
+  </div>
+  <div class="card" style="background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(6,182,212,0.15)); border-color: rgba(124,58,237,0.3); padding:32px;">
+    <h2 style="background: var(--grad-2); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-size: 26px; margin: 0 0 8px;">You are running the Suite locally</h2>
+    <p style="color:var(--text-dim); max-width:640px;">Everything you see is stored in your browser's localStorage on this machine. No servers. No cloud. Yours forever.</p>
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button class="btn primary" onclick="exportData()">Export data (JSON)</button>
+      <button class="btn ghost" onclick="importData()">Import data</button>
+      <button class="btn ghost" onclick="if(confirm('Reset everything and start over?'))Store.reset();rerender();">Reset all data</button>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Preflight</div>
+      ${[
+        ["Business profile set", Store.state.business.name !== "Your Business"],
+        ["Sample or real data present", Store.state.contacts.length > 0],
+        ["Autonomy configured", true],
+        ["Voice trained", (Store.state.business.voice.rules||[]).length > 0]
+      ].map(([t, done]) => `<div class="check-row"><div class="check ${done?"":"pending"}">${done?"✓":"○"}</div><div>${t}</div></div>`).join("")}
+    </div>
+    <div class="card">
+      <div class="card-title">Deploy targets</div>
+      ${[["Local browser (this app)","Runs anywhere with a browser","recommended"],["Docker container","Self-host on your server",""],["Cloudflare Worker","Edge · $0-$5/mo",""],["Sophia Cloud (JOOLT)","Always-on hosted","upgrade"]].map(([n,d,tag]) => `
+        <div class="list-item">
+          <div class="meta"><div class="title">${n}${tag==="recommended"?' <span class="badge green">Live</span>':tag==="upgrade"?' <span class="badge cyan">Book</span>':''}</div><div class="sub">${d}</div></div>
+        </div>`).join("")}
+    </div>
+  </div>
+`;
+
+pages.migration = () => `
+  <div class="page-header">
+    <div><h1 class="page-title">Upgrade paths - book a call</h1><div class="page-sub">The Suite is DIY. When you're ready for voice or full automation, we build it with you.</div></div>
+  </div>
+  <div class="card" style="background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(6,182,212,0.08)); border-color: rgba(6,182,212,0.3);">
+    <h3 style="background: var(--grad-2); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 4px;">Your JOOLT A2A Rep is paired with Sophia</h3>
+    <p style="color:var(--text-dim);">Every buy pairs Sophia with a JOOLT-hosted <b>A2A Agent Rep</b> - always-on, free forever. It's already running.</p>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0;">
+      <span class="badge cyan">A2A · v0.4</span><span class="badge green">Online</span>
+    </div>
+    <a href="https://joolt.io/agent-rep" target="_blank" class="btn primary">Manage at joolt.io/agent-rep</a>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🎙 Sophia Presence - includes voice</div>
+      <p style="color:var(--text-dim); font-size:13px;">Everything in the DIY Suite plus voice on every channel - phone, callbacks, chat-to-voice.</p>
+      <ul style="color:var(--text-dim); font-size:13px;">
+        <li>24/7 inbound + outbound voice</li>
+        <li>Custom voice + tone tuned by our team</li>
+        <li>Ships on your Twilio or existing VOIP</li>
+        <li>Priority JOOLT support</li>
+      </ul>
+      <a href="https://joolt.io/agent-rep" target="_blank" class="btn primary sm">Book a call →</a>
+    </div>
+    <div class="card">
+      <div class="card-title">◆ Sophia SMB Pro - full automation</div>
+      <p style="color:var(--text-dim); font-size:13px;">Everything in Sophia Presence plus end-to-end business autonomy and a dedicated JOOLT human partner.</p>
+      <ul style="color:var(--text-dim); font-size:13px;">
+        <li>Multi-location · white label</li>
+        <li>Enterprise SLA · SOC 2 · HIPAA-ready</li>
+        <li>Deep memory across every touchpoint</li>
+      </ul>
+      <a href="https://joolt.io/agent-rep" target="_blank" class="btn primary sm">Book a call →</a>
+    </div>
+  </div>
+
+  <div class="card" style="background: linear-gradient(135deg, rgba(6,182,212,0.10), rgba(124,58,237,0.06)); border-color: rgba(6,182,212,0.35);">
+    <div style="display:inline-block; padding:3px 10px; border-radius:999px; background:rgba(6,182,212,0.2); color:var(--accent-2); font-size:10px; font-weight:800; letter-spacing:1px; margin-bottom:8px;">🛠 OPTIONAL ADD-ON</div>
+    <div class="card-title">Setup Consulting — done-for-you</div>
+    <p style="color:var(--text-dim); font-size:13px; margin:6px 0;">Prefer white-glove setup? Your JOOLT Rep does it. 90-min kickoff · connector setup · voice training · go-live walkthrough · 30-day email support.</p>
+    <div style="display:flex; align-items:center; gap:16px; margin-top:12px;">
+      <div style="font-size:22px; font-weight:800;">$750 <span style="font-size:12px; color:var(--text-dim); font-weight:500;">one-time</span></div>
+      <a href="https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L" target="_blank" class="btn primary sm">Add Setup Consulting →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Pricing</div>
+    <div style="margin-bottom:14px; padding:14px 18px; border-radius:12px; background: linear-gradient(135deg, #F97316 0%, #DB2777 60%, #7C3AED 100%); color:white; display:flex; align-items:center; gap:14px;">
+      <div style="font-size:24px;">⚡</div>
+      <div style="flex:1;">
+        <div style="display:inline-block; padding:2px 10px; border-radius:999px; background:rgba(255,255,255,0.2); font-size:10px; font-weight:800; letter-spacing:1px; margin-bottom:4px;">FOUNDER'S · FIRST 50</div>
+        <div style="font-weight:800; font-size:15px;">$99 one-time + $24.99/mo · 3-day trial license · save $98</div>
+      </div>
+      <a href="https://smb.joolt.io/checkout/founders" target="_blank" class="btn" style="background:white; color:#DB2777; font-weight:800; text-decoration:none;">Claim →</a>
+    </div>
+    <div class="grid-2">
+      <div style="padding:20px; border:1px solid rgba(249,115,22,0.4); border-radius:12px; background: rgba(249,115,22,0.08)">
+        <div style="font-weight:700;">Founder's Edition</div>
+        <div style="font-size:22px; font-weight:800;"><s style="color:var(--muted);font-size:16px;">$197</s> $99 <span style="font-size:12px; color:var(--text-dim); font-weight:500;">+ $24.99/mo · 3-day trial</span></div>
+        <p style="color:var(--text-dim); font-size:12px; margin: 8px 0 14px;">DIY Suite · lifetime updates with active license · first 50 only</p>
+        <a href="https://smb.joolt.io/checkout/founders" target="_blank" class="btn primary sm">Claim</a>
+      </div>
+      <div style="padding:20px; border:1px solid var(--border); border-radius:12px; background: var(--panel-2)">
+        <div style="font-weight:700;">SMB Suite</div>
+        <div style="font-size:22px; font-weight:800;">$197 <span style="font-size:12px; color:var(--text-dim); font-weight:500;">+ $24.99/mo · 3-day trial</span></div>
+        <p style="color:var(--text-dim); font-size:12px; margin: 8px 0 14px;">DIY bundle · A2A Rep + updates with active license</p>
+        <a href="https://smb.joolt.io/checkout/suite" target="_blank" class="btn sm">Buy the Suite</a>
+      </div>
+    </div>
+  </div>
+`;
+
+pages.settings = () => {
+  const s = Store.state;
+  const auto = s.settings.autonomy;
+  const setAutonomy = (key, val) => "Actions.setAutonomy('"+key+"','"+val+"')";
+  const autonomies = [
+    ["replyReviews","Reply to reviews"],
+    ["draftEmails","Draft outbound emails"],
+    ["sendInvoiceReminders","Send invoice reminders"],
+    ["sendNewInvoices","Send new invoices"],
+    ["bookCalendar","Book calendar slots"],
+    ["postSocial","Post to social"],
+    ["publishAds","Publish ads"],
+    ["signContracts","Sign contracts"],
+    ["answerPhone","Answer phone"],
+    ["answerWebchat","Answer web chat"],
+    ["reorderInventory","Reorder inventory"]
+  ];
+  return `
+    <div class="page-header">
+      <div><h1 class="page-title">Settings</h1><div class="page-sub">Business, brand, autonomy, connectors.</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Business profile</div>
+        <div class="field"><label>Name</label><input id="bp_name" value="${escapeHtml(s.business.name)}" /></div>
+        <div class="field"><label>Industry</label><input id="bp_industry" value="${escapeHtml(s.business.industry)}" /></div>
+        <div class="field"><label>Size</label><input id="bp_size" value="${escapeHtml(s.business.size)}" /></div>
+        <div class="field-row">
+          <div class="field"><label>Email</label><input id="bp_email" value="${escapeHtml(s.business.email)}" /></div>
+          <div class="field"><label>Phone</label><input id="bp_phone" value="${escapeHtml(s.business.phone)}" /></div>
+        </div>
+        <button class="btn primary" onclick="Actions.saveBusinessProfile()">Save</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Sophia autonomy</div>
+        <p style="color:var(--text-dim); font-size:12px;">auto = do it · draft = draft + wait · never = ask you</p>
+        ${autonomies.map(([k,label]) => `<div class="field" style="margin-bottom:10px;"><label>${label}</label>
+          <div class="pill-row">
+            ${["auto","draft","never"].map(v => `<span class="pill ${auto[k]===v?"on":""}" onclick="Actions.setAutonomy('${k}','${v}')">${v}</span>`).join("")}
+          </div></div>`).join("")}
+      </div>
+      <div class="card">
+        <div class="card-title">Voice rules (${(s.business.voice.rules||[]).length})</div>
+        <p style="color:var(--text-dim); font-size:12px;">Sophia uses these when drafting for you.</p>
+        ${(s.business.voice.rules||[]).map((r,i) => `<div class="list-item" style="padding:8px 0;"><div class="meta"><div class="title">${escapeHtml(r)}</div></div><button class="btn sm" onclick="Actions.removeVoiceRule(${i})">Del</button></div>`).join("")}
+        <button class="btn sm" onclick="Actions.addVoiceRule()">+ Add rule</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Connectors</div>
+        <p style="color:var(--text-dim); font-size:12px;">Toggle what Sophia can see and act on.</p>
+        ${["quickbooks","hubspot","gmail","calendar","paypal","twilio","canva","docusign"].map(k => `
+          <div class="list-item" style="padding:6px 0;">
+            <div class="meta"><div class="title">${k}</div></div>
+            <span class="pill ${s.settings.connectors[k]?"on-green":""}" onclick="Actions.toggleConnector('${k}')">${s.settings.connectors[k]?"Connected":"Off"}</span>
+          </div>`).join("")}
+      </div>
+      <div class="card">
+        <div class="card-title">Safety net</div>
+        <p style="color:var(--text-dim); font-size:13px;">Sophia always confirms before: sending money over ${fmt$(s.settings.thresholds.maxAutoMoney)}, publishing ads over ${fmt$(s.settings.thresholds.maxAutoAd)}, deleting records, or signing contracts.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Danger zone</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn" onclick="Store.seedSample(); rerender(); toast('Sample data loaded');">Load sample data</button>
+          <button class="btn ghost" onclick="if(confirm('Reset everything?')){Store.reset();rerender();toast('Reset');}">Reset all data</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+/* ===================== Actions: settings helpers ===================== */
+Actions.saveBusinessProfile = () => {
+  const g = k => (document.getElementById(k)||{value:""}).value;
+  Store.update(s => {
+    s.business.name = g("bp_name") || s.business.name;
+    s.business.industry = g("bp_industry") || s.business.industry;
+    s.business.size = g("bp_size") || s.business.size;
+    s.business.email = g("bp_email");
+    s.business.phone = g("bp_phone");
+  });
+  toast("Business profile saved");
+  updateBizName();
+  rerender();
+};
+Actions.setAutonomy = (k, v) => {
+  Store.update(s => { s.settings.autonomy[k] = v; });
+  toast(k + " → " + v);
+  rerender();
+};
+Actions.toggleConnector = k => {
+  Store.update(s => { s.settings.connectors[k] = !s.settings.connectors[k]; });
+  toast(k + " " + (Store.state.settings.connectors[k] ? "connected" : "off"));
+  rerender();
+};
+Actions.addVoiceRule = () => {
+  const rule = prompt("Voice rule (short one-liner):");
+  if (!rule) return;
+  Store.update(s => { s.business.voice.rules = s.business.voice.rules || []; s.business.voice.rules.push(rule); });
+  toast("Rule added");
+  rerender();
+};
+Actions.removeVoiceRule = (i) => {
+  Store.update(s => { s.business.voice.rules.splice(i,1); });
+  rerender();
+};
+
+/* ===================== Automation toggles ===================== */
+function toggleRule(id) {
+  const r = Automation.rules.find(x => x.id === id);
+  if (r) r.enabled = !r.enabled;
+  rerender();
+  toast(id + " " + (r.enabled?"ON":"OFF"));
+}
+
+/* ===================== Router ===================== */
+function go(page) {
+  state.page = page;
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.page === page));
+  const main = document.getElementById("main");
+  main.scrollTop = 0;
+  main.innerHTML = (pages[page] || (() => '<div class="empty">Coming soon.</div>'))();
+}
+function rerender() { go(state.page); updateCounts(); updateBizName(); }
+document.querySelectorAll(".nav-item").forEach(n => {
+  n.addEventListener("click", () => go(n.dataset.page));
+});
+
+function updateCounts() {
+  const s = Store.state;
+  const counts = {
+    phone: s.calls.filter(c => c.when > now() - 24*3600000).length,
+    email: s.emails.filter(e => e.direction === "inbound" && !e.sentAt).length,
+    webchat: s.chats.filter(c => c.status === "in_progress").length,
+    reviews: s.reviews.filter(r => !r.replySentAt).length,
+    leads: s.leads.filter(l => l.status !== "converted").length,
+    invoicing: s.invoices.filter(i => i.status === "overdue" || i.status === "draft").length
+  };
+  document.querySelectorAll("[data-count]").forEach(el => {
+    const k = el.dataset.count;
+    if (counts[k] !== undefined) { el.textContent = counts[k]; el.style.display = counts[k] > 0 ? "" : "none"; }
+  });
+}
+function updateBizName() {
+  const el = document.getElementById("bizNameDisplay");
+  if (el) el.textContent = Store.state.business.name;
+}
+
+/* ===================== Import / Export ===================== */
+function exportData() {
+  const blob = new Blob([JSON.stringify(Store.state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "joolt-suite-" + Date.now() + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Exported");
+}
+function importData() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json";
+  input.onchange = () => {
+    const f = input.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const parsed = JSON.parse(r.result);
+        Store.state = parsed;
+        Store.save();
+        rerender();
+        toast("Imported");
+      } catch(e) { toast("Bad file", "error"); }
+    };
+    r.readAsText(f);
+  };
+  input.click();
+}
+
+/* ===================== Wizard ===================== */
+const wiz = { step: 0, steps: [] };
+wiz.steps = [
+  { title: "Welcome to JOOLT SMB Suite", body: () => `
+    <div style="text-align:center; padding:20px 0;">
+      <div style="font-size:44px;">👋</div>
+      <h3 style="margin:0 0 6px;">Business in a box, powered by Sophia.</h3>
+      <p style="color:var(--text-dim); max-width:420px; margin:8px auto 0;">In 3 minutes, we'll set up your business, seed data, and go live.</p>
+    </div>
+  ` },
+  { title: "Tell Sophia about your business", body: () => `
+    <div class="field-row">
+      <div class="field"><label>Business name</label><input id="w_name" value="${escapeHtml(Store.state.business.name)}"></div>
+      <div class="field"><label>Industry</label><select id="w_industry">
+        ${["Home services","Consulting","Small agency","Digital products","Solopreneur / creator","Contractor / trades","Retail / e-commerce","Other"].map(o => `<option ${Store.state.business.industry===o?"selected":""}>${o}</option>`).join("")}
+      </select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Size</label><select id="w_size">
+        ${["Solo","Solo + 1-5","6-20","20+"].map(o => `<option ${Store.state.business.size===o?"selected":""}>${o}</option>`).join("")}
+      </select></div>
+      <div class="field"><label>Business email</label><input id="w_email" value="${escapeHtml(Store.state.business.email)}" placeholder="you@yourbiz.com"></div>
+    </div>
+  ` },
+  { title: "Load sample data or start fresh", body: () => `
+    <p style="color:var(--text-dim);">Sample data uses Northstar Home Services - realistic contacts, leads, invoices, reviews. Great for learning the system. Fresh starts you empty for real business use.</p>
+    <div class="grid-2" style="margin-top:14px;">
+      <div class="card" style="margin:0;"><div class="card-title">Sample business</div><p style="color:var(--text-dim); font-size:12px;">Northstar Home Services with realistic data.</p><button class="btn primary" id="w_seed">Load sample</button></div>
+      <div class="card" style="margin:0;"><div class="card-title">Empty</div><p style="color:var(--text-dim); font-size:12px;">Start with your own real data.</p><button class="btn" id="w_empty">Start empty</button></div>
+    </div>
+    <div id="w_seedPick" style="margin-top:10px; color:var(--accent-2); font-size:13px;"></div>
+  ` },
+  { title: "Autonomy defaults", body: () => `
+    <p style="color:var(--text-dim);">Choose what Sophia does without asking. You can change these anytime.</p>
+    ${[["replyReviews","Reply to reviews"],["draftEmails","Draft emails"],["sendInvoiceReminders","Send invoice reminders"],["postSocial","Post to social"]].map(([k,label]) => `
+      <div class="field" style="margin-bottom:10px;"><label>${label}</label>
+        <div class="pill-row">${["auto","draft","never"].map(v => `<span class="pill ${Store.state.settings.autonomy[k]===v?"on":""}" onclick="wizSetAutonomy('${k}','${v}')">${v}</span>`).join("")}</div>
+      </div>`).join("")}
+  ` },
+  { title: "You're ready", body: () => `
+    <div style="text-align:center; padding:16px 0;">
+      <div style="font-size:44px;">🚀</div>
+      <h3 style="margin:8px 0;">Suite is live on this machine.</h3>
+      <p style="color:var(--text-dim);">Sophia is watching. Automations are firing. Click Finish to open your dashboard.</p>
+    </div>
+  ` }
+];
+function wizSetAutonomy(k, v) {
+  Store.update(s => { s.settings.autonomy[k] = v; });
+  renderWiz();
+}
+function openWizard() {
+  wiz.step = 0;
+  renderWiz();
+  document.getElementById("wizardModal").classList.add("open");
+}
+function closeWizard() { document.getElementById("wizardModal").classList.remove("open"); }
+function renderWiz() {
+  const s = wiz.steps[wiz.step];
+  document.getElementById("wizTitle").textContent = s.title;
+  document.getElementById("wizBody").innerHTML =
+    `<div style="display:flex; gap:6px; margin-bottom:16px; justify-content:center;">${wiz.steps.map((_,i) => `<span style="width:${i<=wiz.step?24:8}px; height:8px; border-radius:4px; background:${i<=wiz.step?"var(--primary)":"var(--border)"};"></span>`).join("")}</div>` + s.body();
+  document.getElementById("wizPrev").style.visibility = wiz.step === 0 ? "hidden" : "visible";
+  document.getElementById("wizNext").textContent = wiz.step === wiz.steps.length-1 ? "Finish" : "Continue";
+  // Bind seed buttons
+  if (wiz.step === 2) {
+    const seedBtn = document.getElementById("w_seed");
+    const emptyBtn = document.getElementById("w_empty");
+    if (seedBtn) seedBtn.onclick = () => { Store.seedSample(); document.getElementById("w_seedPick").textContent = "✓ Sample loaded"; };
+    if (emptyBtn) emptyBtn.onclick = () => { Store.update(s => { s.contacts=[]; s.deals=[]; s.leads=[]; s.invoices=[]; s.payments=[]; s.products=[]; s.contracts=[]; s.policies=[]; s.reviews=[]; s.calls=[]; s.emails=[]; s.chats=[]; s.posts=[]; s.tasks=[]; s.funnels=[]; }); document.getElementById("w_seedPick").textContent = "✓ Empty state ready"; };
+  }
+}
+function wizNext() {
+  if (wiz.step === 1) {
+    const g = k => (document.getElementById(k)||{value:""}).value;
+    Store.update(s => {
+      s.business.name = g("w_name") || s.business.name;
+      s.business.industry = g("w_industry");
+      s.business.size = g("w_size");
+      s.business.email = g("w_email");
+    });
+    updateBizName();
+  }
+  if (wiz.step === wiz.steps.length - 1) {
+    Store.update(s => { s.onboarded = true; });
+    closeWizard();
+    toast("Setup complete - welcome aboard");
+    rerender();
+    return;
+  }
+  wiz.step++;
+  renderWiz();
+}
+function wizPrev() { if (wiz.step > 0) { wiz.step--; renderWiz(); } }
+
+/* ===================== License Gate ===================== */
+/* Checks the buyer's license against the JOOLT orchestrator worker
+ * on boot and every 6 hours. If the subscription is canceled, past_due,
+ * or unpaid, Actions are blocked and a banner appears.
+ * Grace period: if the license was valid within the last 7 days but the
+ * server is unreachable, the app keeps working.
+ * License key = the Stripe customer id (cus_...), handed out at checkout. */
+const LICENSE_KEY = "joolt_license_key";
+const LICENSE_STATE_KEY = "joolt_license_state";
+const LICENSE_ENDPOINT_KEY = "joolt_license_endpoint";
+const LICENSE_DEFAULT_ENDPOINT = "https://smb.joolt.io"; // change once Worker is deployed
+const LICENSE_GRACE_MS = 7 * 24 * 3600 * 1000;
+const LICENSE_RECHECK_MS = 6 * 3600 * 1000;
+
+const License = {
+  key: null,
+  endpoint: null,
+  state: null, // { valid, status, expiresAt, lastVerified, reason, trialEnd }
+  load() {
+    this.key = localStorage.getItem(LICENSE_KEY) || "";
+    this.endpoint = localStorage.getItem(LICENSE_ENDPOINT_KEY) || LICENSE_DEFAULT_ENDPOINT;
+    try { this.state = JSON.parse(localStorage.getItem(LICENSE_STATE_KEY) || "null"); } catch(e) { this.state = null; }
+  },
+  save() {
+    if (this.key) localStorage.setItem(LICENSE_KEY, this.key); else localStorage.removeItem(LICENSE_KEY);
+    if (this.endpoint) localStorage.setItem(LICENSE_ENDPOINT_KEY, this.endpoint);
+    if (this.state) localStorage.setItem(LICENSE_STATE_KEY, JSON.stringify(this.state));
+  },
+  setKey(k) { this.key = (k||"").trim(); this.state = null; this.save(); },
+  setEndpoint(e) { this.endpoint = (e||"").trim() || LICENSE_DEFAULT_ENDPOINT; this.save(); },
+  clear() { this.key = ""; this.state = null; localStorage.removeItem(LICENSE_KEY); localStorage.removeItem(LICENSE_STATE_KEY); this.updateBanner(); },
+  isValid() {
+    // No key → invalid (but app still runs in "unlicensed" mode; only Actions blocked)
+    if (!this.key) return false;
+    if (!this.state) return false;
+    if (this.state.valid === true) return true;
+    // Grace: was valid within window
+    if (this.state.lastValidAt && (Date.now() - this.state.lastValidAt < LICENSE_GRACE_MS)) return true;
+    return false;
+  },
+  gateReason() {
+    if (!this.key) return "Enter your license key in Settings to activate the Suite.";
+    if (!this.state) return "License not yet verified. Check your connection or verify in Settings.";
+    if (this.state.valid) return "";
+    if (this.state.lastValidAt && (Date.now() - this.state.lastValidAt < LICENSE_GRACE_MS)) {
+      const daysLeft = Math.ceil((LICENSE_GRACE_MS - (Date.now() - this.state.lastValidAt)) / 86400000);
+      return "License grace period · " + daysLeft + "d remaining. Update payment method or renew.";
+    }
+    return this.state.reason || ("License status: " + (this.state.status || "unknown"));
+  },
+  async verify(opts) {
+    opts = opts || {};
+    if (!this.key) { this.updateBanner(); return; }
+    if (!opts.force && this.state && this.state.lastVerified && (Date.now() - this.state.lastVerified < LICENSE_RECHECK_MS)) return;
+    try {
+      const url = this.endpoint.replace(/\/$/,"") + "/license/verify?key=" + encodeURIComponent(this.key);
+      const res = await fetch(url, { method: "GET" });
+      if (!res.ok) throw new Error("http_" + res.status);
+      const data = await res.json();
+      const wasValid = this.state && this.state.valid;
+      this.state = {
+        valid: !!data.valid,
+        status: data.status,
+        expiresAt: data.expiresAt,
+        trialEnd: data.trialEnd,
+        reason: data.reason,
+        tier: data.tier,
+        lastVerified: Date.now(),
+        lastValidAt: data.valid ? Date.now() : (this.state && this.state.lastValidAt) || null
+      };
+      this.save();
+      if (!wasValid && data.valid) toast("License activated");
+      if (wasValid && !data.valid) toast("License is " + (data.status || "inactive"), "warn");
+      this.updateBanner();
+    } catch(e) {
+      // Network error - do not change state; rely on grace
+      this.updateBanner();
+    }
+  },
+  updateBanner() {
+    const el = document.getElementById("licenseBanner");
+    if (!el) return;
+    const valid = this.isValid();
+    if (valid && !this.state) { el.style.display = "none"; return; }
+    if (valid) {
+      const tier = (this.state && this.state.tier === "founders") ? "Founder's" : "Standard";
+      const status = this.state.status;
+      if (status === "trialing" && this.state.trialEnd) {
+        const days = Math.ceil((this.state.trialEnd - Date.now()) / 86400000);
+        el.innerHTML = '<span class="badge cyan">Trial &middot; ' + days + 'd left</span>';
+      } else {
+        el.innerHTML = '<span class="badge green">License &middot; ' + tier + '</span>';
+      }
+      el.style.display = "";
+      return;
+    }
+    // Not valid → show warning banner + block Actions
+    el.innerHTML = '<span class="badge red" title="' + escapeHtml(this.gateReason()) + '">License required</span>';
+    el.style.display = "";
+  }
+};
+
+// Wrap Actions.* to require license (except a few that must always work)
+const ACTIONS_ALWAYS_ALLOWED = new Set([
+  "saveBusinessProfile","setAutonomy","toggleConnector","addVoiceRule","removeVoiceRule"
+]);
+(function wrapActions() {
+  Object.keys(Actions).forEach(name => {
+    if (typeof Actions[name] !== "function") return;
+    if (ACTIONS_ALWAYS_ALLOWED.has(name)) return;
+    const orig = Actions[name];
+    Actions[name] = function(...args) {
+      if (!License.isValid()) {
+        toast("License required. Enter your key in Settings to activate.", "warn");
+        go("settings");
+        return;
+      }
+      return orig.apply(Actions, args);
+    };
+  });
+})();
+
+// Settings page addition — inject License section
+const _originalSettingsPage = pages.settings;
+pages.settings = () => {
+  const s = Store.state;
+  const status = License.state ? License.state.status : "not_verified";
+  const licenseHtml = `
+    <div class="card">
+      <div class="card-title">License</div>
+      <p style="color:var(--text-dim); font-size:12px; margin: 0 0 10px;">
+        Your license key was emailed to you after checkout. Enter it below to activate the Suite.
+        Status: <b>${escapeHtml(status)}</b>${License.state && License.state.expiresAt ? ' &middot; expires ' + fmtDateTime(License.state.expiresAt) : ''}
+      </p>
+      <div class="field"><label>License key</label>
+        <input id="lic_key" value="${escapeHtml(License.key||'')}" placeholder="cus_XXXXXXXXXXXXXX" />
+      </div>
+      <div class="field"><label>Verification endpoint (leave default unless self-hosting)</label>
+        <input id="lic_endpoint" value="${escapeHtml(License.endpoint||LICENSE_DEFAULT_ENDPOINT)}" />
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn primary" onclick="Actions.saveLicense()">Save &amp; verify</button>
+        <button class="btn" onclick="License.verify({force:true}); toast('Re-checking license...');">Re-check now</button>
+        <button class="btn ghost" onclick="if(confirm('Remove license key?')) License.clear();">Remove key</button>
+      </div>
+    </div>
+  `;
+  return _originalSettingsPage() + licenseHtml;
+};
+Actions.saveLicense = () => {
+  const key = (document.getElementById("lic_key")||{value:""}).value.trim();
+  const endpoint = (document.getElementById("lic_endpoint")||{value:""}).value.trim();
+  License.setKey(key);
+  License.setEndpoint(endpoint);
+  License.verify({force:true}).then(() => rerender());
+  toast("License saved - verifying...");
+};
+
+/* ===================== Boot ===================== */
+Store.load();
+Store.subscribe(() => updateCounts());
+License.load();
+if (!Store.state.onboarded && Store.state.contacts.length === 0) {
+  // Show wizard on first run
+  setTimeout(() => openWizard(), 300);
+}
+go("dashboard");
+updateBizName();
+updateCounts();
+License.verify();
+setInterval(() => License.verify(), LICENSE_RECHECK_MS);
+Automation.start();
+
+// Ensure clicking outside modals closes them
+document.getElementById("wizardModal").addEventListener("click", e => { if (e.target.id === "wizardModal") closeWizard(); });
+document.getElementById("genericModal").addEventListener("click", e => { if (e.target.id === "genericModal") Modal.close(); });
+</script>
+</body>
+</html>
