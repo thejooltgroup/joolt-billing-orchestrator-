@@ -1387,7 +1387,7 @@ const Actions = {
 
   /* Webchat */
   copyEmbedCode() {
-    const code = '<script src="https://smb.joolt.io/widget.js" data-biz="' + encodeURIComponent(Store.state.business.name) + '" defer></script>';
+    const code = '<' + 'script src="https://smb.joolt.io/widget.js" data-biz="' + encodeURIComponent(Store.state.business.name) + '" defer><\/script>';
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(code).then(() => toast("Embed code copied - paste in your site's <head>"));
     } else {
