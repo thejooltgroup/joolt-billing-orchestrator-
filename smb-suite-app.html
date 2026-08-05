@@ -3178,6 +3178,29 @@ Actions.saveClaudeKey = async () => {
   }
 };
 
+/* ===================== Upsell banners — book a call ===================== */
+function upsellBanner(text) {
+  return '<div style="display:flex;align-items:center;gap:14px;padding:13px 18px;border-radius:12px;background:linear-gradient(135deg,rgba(251,146,60,.10),rgba(244,63,94,.08));border:1px solid rgba(251,146,60,.3);margin-bottom:16px;">' +
+    '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#FB923C,#F43F5E);color:#FFF;display:grid;place-items:center;font-weight:900;font-size:15px;flex-shrink:0;">S</div>' +
+    '<div style="flex:1;font-size:13px;color:var(--text-dim);line-height:1.5;">' + text + '</div>' +
+    '<a href="https://joolt.io/agent-rep" target="_blank" style="white-space:nowrap;padding:10px 18px;font-size:12px;font-weight:800;color:#FFF;border-radius:10px;background:linear-gradient(135deg,#FB923C,#F43F5E);box-shadow:0 8px 20px rgba(251,146,60,.3);text-decoration:none;">Book a call &rarr;</a>' +
+  '</div>';
+}
+const UPSELLS = {
+  phone: 'The DIY Suite scripts and logs calls &mdash; it can&#39;t answer your real phone line. <b style="color:#FFF;">Sophia Presence</b> adds 24/7 voice on your number: answering, booking, callbacks.',
+  webchat: 'This widget captures leads while the app is open. Want Sophia answering site visitors <b style="color:#FFF;">24/7 &mdash; even with your laptop closed?</b> That&#39;s hosted Sophia.',
+  email: 'Drafts here wait for your click. <b style="color:#FFF;">Sophia Presence</b> runs your inbox end-to-end &mdash; triage, reply, follow-up &mdash; under your rules.',
+  marketing: 'Posts here are drafts you approve. <b style="color:#FFF;">Sophia SMB Pro</b> plans, writes, and publishes your whole calendar &mdash; hands off.',
+  automations: 'New Job Flow is one automation. <b style="color:#FFF;">Sophia SMB Pro</b> builds unlimited custom flows across every module &mdash; with a dedicated JOOLT partner.'
+};
+(function () {
+  Object.keys(UPSELLS).forEach(k => {
+    const orig = pages[k];
+    if (!orig) return;
+    pages[k] = () => upsellBanner(UPSELLS[k]) + orig();
+  });
+})();
+
 /* ===================== Boot ===================== */
 Store.load();
 Store.subscribe(() => updateCounts());
