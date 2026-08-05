@@ -58,7 +58,9 @@ export function env() {
     PRICE_SETUP_CONSULTING: process.env.PRICE_SETUP_CONSULTING,
     WELCOME_URL_BASE: process.env.WELCOME_URL_BASE || "https://smb.joolt.io/welcome",
     FOUNDERS_MAX: process.env.FOUNDERS_MAX || "50",
-    MASTER_LICENSE_KEY: process.env.MASTER_LICENSE_KEY || ""
+    MASTER_LICENSE_KEY: process.env.MASTER_LICENSE_KEY || "",
+    PILOT_LICENSE_KEYS: process.env.PILOT_LICENSE_KEYS || "",
+    PILOT_EXPIRES_AT: process.env.PILOT_EXPIRES_AT || ""
   };
 }
 
@@ -211,6 +213,26 @@ export async function handleLicenseVerify(request) {
       gracePeriodDays: 0,
       serverTime: Date.now()
     }, 200, CORS);
+  }
+
+  // Pilot/beta licenses — comma-separated keys in PILOT_LICENSE_KEYS, expiry in PILOT_EXPIRES_AT (ISO date)
+  if (E.PILOT_LICENSE_KEYS) {
+    const pilots = E.PILOT_LICENSE_KEYS.split(",").map(s => s.trim()).filter(Boolean);
+    if (pilots.includes(key)) {
+      const exp = Date.parse(E.PILOT_EXPIRES_AT || "") || (Date.now() + 183 * 24 * 3600 * 1000);
+      const valid = Date.now() < exp;
+      return json({
+        valid,
+        status: valid ? "active" : "expired",
+        expiresAt: exp,
+        tier: "pilot",
+        trialEnd: null,
+        cancelAt: exp,
+        reason: valid ? "pilot_key" : "Pilot license expired — email admin@thejooltgroup.com",
+        gracePeriodDays: 0,
+        serverTime: Date.now()
+      }, 200, CORS);
+    }
   }
 
   if (!key || !key.startsWith("cus_")) {
