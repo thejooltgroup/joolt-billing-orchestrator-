@@ -1,0 +1,8 @@
+{
+  "name": "joolt-billing-orchestrator",
+  "version": "1.0.0",
+  "description": "JOOLT SMB Suite billing orchestrator — Day-0 setup, Day-3 one-time, Day-30 license via Stripe Subscription Schedules",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/checkout/founders", "destination": "/api/checkout/founders" },
+    { "source": "/checkout/suite",    "destination": "/api/checkout/suite" },
+    { "source": "/webhook",           "destination": "/api/webhook" },
+    { "source": "/license/verify",    "destination": "/api/license/verify" },
+    { "source": "/session/resolve",   "destination": "/api/session/resolve" },
+    { "source": "/welcome",           "destination": "/welcome.html" },
+    { "source": "/health",            "destination": "/api/health" }
+  ]
+}

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Welcome to JOOLT SMB Suite</title>
+<style>
+  :root{--bg:#0A0E1A;--panel:#111827;--line:#1F2937;--ink:#F4F7FC;--dim:#B8C0CC;--muted:#7C8797;--accent:#8FB3FF;--ok:#4ADE80}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.55}
+  .wrap{max-width:680px;margin:0 auto;padding:56px 24px 96px}
+  .brand{font-size:12px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:20px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:rgba(74,222,128,.12);color:var(--ok);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:999px;margin-bottom:16px}
+  .chip::before{content:"OK"}
+  h1{font-size:34px;line-height:1.15;margin:0 0 12px;letter-spacing:-0.01em}
+  .lede{font-size:17px;color:var(--dim);margin:0 0 32px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
+  h3{margin:0 0 8px;font-size:12px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+  .sid{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;color:var(--accent);word-break:break-all;padding:12px 14px;background:#0A0E1A;border:1px dashed #2A344A;border-radius:8px;user-select:all;cursor:copy}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  ul.tl{margin:0;padding:0;list-style:none}
+  ul.tl li{display:grid;grid-template-columns:76px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  ul.tl li:last-child{border-bottom:none}
+  .day{font-weight:700;color:var(--ink)}
+  .day .sub{display:block;font-size:11px;color:var(--muted);font-weight:400;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+  .what{color:var(--dim);font-size:14.5px}
+  .what strong{color:var(--ink)}
+  .btn{display:inline-block;background:var(--accent);color:#0A0E1A;font-weight:700;font-size:15px;padding:13px 22px;border-radius:10px;text-decoration:none;margin-top:6px}
+  .btn:hover{background:#A5C0FF}
+  .foot{margin-top:36px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:18px}
+  .foot a{color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">JOOLT SMB Suite</div>
+  <div class="chip">Order Confirmed</div>
+  <h1>You&#39;re in. Welcome to <span style="color:var(--accent)">JOOLT</span>.</h1>
+  <p class="lede">Your card is saved. Your 3-day free trial has started. A confirmation email with your license key is on its way.</p>
+
+  <div class="card">
+    <h3>Your Session</h3>
+    <div class="sid" id="sid">Loading&hellip;</div>
+    <p class="hint">Keep this receipt handy. Your license key (starts with <code>cus_</code>) was emailed to you and is also visible in your Stripe billing portal.</p>
+  </div>
+
+  <div class="card">
+    <h3>What Happens Next</h3>
+    <ul class="tl">
+      <li>
+        <div class="day">Today<span class="sub">Day 0</span></div>
+        <div class="what"><strong>$0 charged.</strong> Card saved. Use SMB Suite freely for 3 days.</div>
+      </li>
+      <li>
+        <div class="day">Day 3<span class="sub">In 3 days</span></div>
+        <div class="what"><strong>One-time fee charged</strong> ($99 Founder, or $197 Standard). You keep the app forever.</div>
+      </li>
+      <li>
+        <div class="day">Day 30<span class="sub">In 30 days</span></div>
+        <div class="what"><strong>Monthly license begins</strong> at $24.99/mo. Cancel anytime.</div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Get Started</h3>
+    <p style="margin:0 0 12px;color:var(--dim);font-size:14.5px">Open the SMB Suite, paste your license key, and start running your business.</p>
+    <a class="btn" href="https://joolt.io">Return to JOOLT</a>
+  </div>
+
+  <div class="foot">
+    Questions? <a href="mailto:admin@thejooltgroup.com">admin@thejooltgroup.com</a>
+  </div>
+</div>
+<script>
+  var q = new URLSearchParams(location.search);
+  var sid = q.get("session_id") || "";
+  document.getElementById("sid").textContent = sid || "(no session id — please check your email for your license key)";
+</script>
+</body>
+</html>
