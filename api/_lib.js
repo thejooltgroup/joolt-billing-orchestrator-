@@ -57,7 +57,8 @@ export function env() {
     PRICE_ONETIME_SUITE: process.env.PRICE_ONETIME_SUITE,
     PRICE_SETUP_CONSULTING: process.env.PRICE_SETUP_CONSULTING,
     WELCOME_URL_BASE: process.env.WELCOME_URL_BASE || "https://smb.joolt.io/welcome",
-    FOUNDERS_MAX: process.env.FOUNDERS_MAX || "50"
+    FOUNDERS_MAX: process.env.FOUNDERS_MAX || "50",
+    MASTER_LICENSE_KEY: process.env.MASTER_LICENSE_KEY || ""
   };
 }
 
@@ -196,6 +197,21 @@ export async function handleLicenseVerify(request) {
   const key = url.searchParams.get("key") || "";
 
   if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
+
+  // Master license bypass (for internal QA, demos, training) — env-var controlled
+  if (E.MASTER_LICENSE_KEY && key === E.MASTER_LICENSE_KEY) {
+    return json({
+      valid: true,
+      status: "active",
+      expiresAt: Date.now() + 100 * 365 * 24 * 3600 * 1000, // ~100 years
+      tier: "master",
+      trialEnd: null,
+      cancelAt: null,
+      reason: "master_key",
+      gracePeriodDays: 0,
+      serverTime: Date.now()
+    }, 200, CORS);
+  }
 
   if (!key || !key.startsWith("cus_")) {
     return json({ valid: false, status: "invalid_key", reason: "License key missing or malformed." }, 200, CORS);
