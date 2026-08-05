@@ -1906,7 +1906,7 @@ pages.dashboard = () => {
         <div class="page-sub">Here's what Sophia handled and what needs you today.</div>
       </div>
       <div class="page-actions">
-        <button class="btn ghost" onclick="rerender()">Refresh</button>
+        <button class="btn ghost" onclick="toast('Refreshing…'); setTimeout(() => { rerender(); toast('Dashboard refreshed · ' + new Date().toLocaleTimeString()); }, 300);">⟳ Refresh</button>
         <button class="btn primary" onclick="toggleSophia()">Ask Sophia</button>
       </div>
     </div>
