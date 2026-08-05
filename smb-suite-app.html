@@ -2733,11 +2733,11 @@ pages.settings = () => {
       </div>
       <div class="card">
         <div class="card-title">Connectors</div>
-        <p style="color:var(--text-dim); font-size:12px;">Toggle what Sophia can see and act on.</p>
+        <p style="color:var(--text-dim); font-size:12px;">Toggle what Sophia plans around. Real connections run through <b style="color:#FFF;">MCP on your machine</b> — click a toggle for the 5-min setup. Your data never touches JOOLT servers.</p>
         ${["quickbooks","hubspot","gmail","calendar","paypal","twilio","canva","docusign"].map(k => `
           <div class="list-item" style="padding:6px 0;">
             <div class="meta"><div class="title">${k}</div></div>
-            <span class="pill ${s.settings.connectors[k]?"on-green":""}" onclick="Actions.toggleConnector('${k}')">${s.settings.connectors[k]?"Connected":"Off"}</span>
+            <span class="pill ${s.settings.connectors[k]?"on-green":""}" onclick="Actions.toggleConnector('${k}')">${s.settings.connectors[k]?"Enabled":"Off"}</span>
           </div>`).join("")}
       </div>
       <div class="card">
@@ -2774,9 +2774,32 @@ Actions.setAutonomy = (k, v) => {
   toast(k + " → " + v);
   rerender();
 };
+const MCP_SETUP = {
+  quickbooks: { pkg: "@modelcontextprotocol/server-quickbooks", does: "Pull P&L, flag deductions, prep close packets" },
+  hubspot:    { pkg: "@modelcontextprotocol/server-hubspot",    does: "Enrich contacts, update deals, sync activity" },
+  gmail:      { pkg: "@modelcontextprotocol/server-gmail",      does: "Draft, send (with approval), triage inbox" },
+  calendar:   { pkg: "@modelcontextprotocol/server-gcal",       does: "Book appointments, block time, check availability" },
+  paypal:     { pkg: "@modelcontextprotocol/server-paypal",     does: "Send invoices, log payments, chase overdue" },
+  twilio:     { pkg: "@modelcontextprotocol/server-twilio",     does: "Route calls, SMS reminders, missed-call recovery" },
+  canva:      { pkg: "@modelcontextprotocol/server-canva",      does: "Generate social posts, thumbnails" },
+  docusign:   { pkg: "@modelcontextprotocol/server-docusign",   does: "Send SOWs/NDAs for signature" }
+};
 Actions.toggleConnector = k => {
+  const turningOn = !Store.state.settings.connectors[k];
   Store.update(s => { s.settings.connectors[k] = !s.settings.connectors[k]; });
-  toast(k + " " + (Store.state.settings.connectors[k] ? "connected" : "off"));
+  if (turningOn && MCP_SETUP[k]) {
+    const m = MCP_SETUP[k];
+    Modal.info({
+      title: "Enable " + k + " — one more step on YOUR machine",
+      body: '<p style="color:var(--text-dim);font-size:13px;">This toggle tells Sophia to plan around ' + k + '. The <b style="color:#FFF;">real connection runs through MCP on your computer</b> — your data never touches JOOLT servers.</p>' +
+        '<p style="color:var(--text-dim);font-size:13px;"><b style="color:var(--accent-2);">What Sophia can do once wired:</b> ' + escapeHtml(m.does) + '</p>' +
+        '<p style="color:var(--text-dim);font-size:13px;"><b style="color:#FFF;">Setup (5 min):</b> Install <a href="https://claude.ai/download" target="_blank" style="color:var(--accent-2);">Claude Desktop</a> → Settings → Developer → Edit Config → add:</p>' +
+        '<pre style="background:#141935;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;color:#22D3EE;overflow-x:auto;">{\n  "mcpServers": {\n    "' + k + '": {\n      "command": "npx",\n      "args": ["-y", "' + m.pkg + '"]\n    }\n  }\n}</pre>' +
+        '<p style="color:var(--text-dim);font-size:12px;">Restart Claude Desktop, authenticate via OAuth when prompted. Full walkthrough: <b>Suite-Setup-Guide.pdf · Part 3</b> in your buyer pack.</p>'
+    });
+  } else {
+    toast(k + " " + (Store.state.settings.connectors[k] ? "enabled" : "off"));
+  }
   rerender();
 };
 Actions.addVoiceRule = () => {
