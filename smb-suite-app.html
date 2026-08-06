@@ -3139,7 +3139,9 @@ pages.settings = () => {
         Status: <b>${escapeHtml(status)}</b>${License.state && License.state.expiresAt ? ' &middot; expires ' + fmtDateTime(License.state.expiresAt) : ''}
       </p>
       <div class="field"><label>License key</label>
-        <input id="lic_key" value="${escapeHtml(License.key||'')}" placeholder="cus_XXXXXXXXXXXXXX" />
+        <input id="lic_key" type="password" autocomplete="off" spellcheck="false" value="${escapeHtml(License.key||'')}" placeholder="cus_XXXXXXXXXXXXXX" />
+        <button type="button" class="btn ghost" style="margin-top:6px;font-size:11px;padding:5px 10px;" onclick="var i=document.getElementById('lic_key'); i.type=(i.type==='password'?'text':'password'); this.textContent=(i.type==='password'?'Show key':'Hide key');">Show key</button>
+        <div style="color:var(--muted);font-size:11px;margin-top:5px;">Hidden by default so it stays private on shared screens. Stored only in this browser.</div>
       </div>
       <div class="field"><label>Verification endpoint (leave default unless self-hosting)</label>
         <input id="lic_endpoint" value="${escapeHtml(License.endpoint||LICENSE_DEFAULT_ENDPOINT)}" />
@@ -3147,7 +3149,7 @@ pages.settings = () => {
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn primary" onclick="Actions.saveLicense()">Save &amp; verify</button>
         <button class="btn" onclick="License.verify({force:true}); toast('Re-checking license...');">Re-check now</button>
-        <button class="btn ghost" onclick="if(confirm('Remove license key?')) License.clear();">Remove key</button>
+        <button class="btn ghost" onclick="if(confirm('Remove license key?')){ License.clear(); rerender(); toast('License key removed'); }">Remove key</button>
       </div>
     </div>
   `;
