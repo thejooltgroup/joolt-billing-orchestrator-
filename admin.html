@@ -5,7 +5,7 @@
 <style>
   :root{--bg:#07091A;--bg2:#0D1226;--panel:#141935;--panel2:#1a2140;--border:#232B4C;--text:#F0F3FA;--dim:#A0A9C5;--muted:#6A7599;--p:#7C3AED;--c:#22D3EE;--grad:linear-gradient(135deg,#7C3AED,#22D3EE);--green:#34D399;--amber:#FBBF24;--red:#F87171;}
   *{box-sizing:border-box}body{margin:0;background:radial-gradient(60% 40% at 85% -5%,rgba(124,58,237,.16),transparent 60%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;}
-  .wrap{max-width:1120px;margin:0 auto;padding:26px 22px 80px;}
+  .wrap{max-width:1120px;margin:0 auto;padding:26px 22px 90px;}
   .top{display:flex;align-items:center;gap:12px;margin-bottom:4px;}
   .mark{width:34px;height:34px;border-radius:9px;background:var(--grad);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;}
   h1{font-size:19px;margin:0;font-weight:800;}h1 span{color:var(--dim);font-weight:600;font-size:13px;}
@@ -26,6 +26,8 @@
   th{text-align:left;color:var(--muted);font-weight:700;font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;padding:11px 14px;border-bottom:1px solid var(--border);}
   td{padding:11px 14px;border-bottom:1px solid rgba(35,43,76,.5);color:var(--text);}
   tr:last-child td{border-bottom:none;}
+  tbody.clickable tr{cursor:pointer;}
+  tbody.clickable tr:hover td{background:rgba(124,58,237,.07);}
   .pill{display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.4px;}
   .pill.active{background:rgba(52,211,153,.16);color:var(--green);}
   .pill.trialing{background:rgba(34,211,238,.16);color:var(--c);}
@@ -42,6 +44,29 @@
   .hide{display:none;}
   .foot{color:var(--muted);font-size:11px;margin-top:26px;text-align:center;}
   .err{color:var(--red);font-size:12.5px;margin-top:8px;}
+  /* detail drawer */
+  .overlay{position:fixed;inset:0;background:rgba(3,5,15,.66);backdrop-filter:blur(3px);display:none;z-index:50;}
+  .overlay.show{display:block;}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(520px,94vw);background:var(--bg2);border-left:1px solid var(--border);box-shadow:-20px 0 60px rgba(0,0,0,.5);overflow-y:auto;padding:24px 24px 60px;z-index:51;transform:translateX(100%);transition:transform .18s ease;}
+  .overlay.show .drawer{transform:translateX(0);}
+  .dh{display:flex;align-items:flex-start;gap:12px;margin-bottom:4px;}
+  .dh h3{margin:0;font-size:18px;font-weight:800;}
+  .dh .x{margin-left:auto;background:var(--panel2);border:1px solid var(--border);color:var(--dim);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;}
+  .signal{border-radius:12px;padding:13px 15px;margin:14px 0 6px;font-size:13px;line-height:1.5;border:1px solid;}
+  .signal.hot{background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.4);}
+  .signal.warn{background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.35);color:#FDE9B0;}
+  .signal.ok{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.3);color:#BBF7D8;}
+  .signal b{color:#fff;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 13px;}
+  .stat .l{font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .stat .v{font-size:16px;font-weight:700;margin-top:3px;}
+  .stat .v small{font-size:11px;color:var(--dim);font-weight:500;}
+  .dlabel{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:800;margin:18px 0 8px;}
+  .plist{font-size:12.5px;}
+  .plist .pr{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(35,43,76,.5);}
+  .plist .pr:last-child{border-bottom:none;}
+  .chk{font-weight:800;}.chk.y{color:var(--green);}.chk.n{color:var(--muted);}
 </style></head>
 <body>
 <div class="wrap">
@@ -65,34 +90,49 @@
       </div>
     </div>
     <div id="body"></div>
-    <div class="foot">Reads live from Stripe · keep this link private · &copy; 2026 The JOOLT Group</div>
+    <div class="foot">Reads live from Stripe · usage is counts &amp; flags only, from the app heartbeat · keep this link private · &copy; 2026 The JOOLT Group</div>
   </div>
 </div>
+
+<div id="overlay" class="overlay" onclick="if(event.target===this)closeDetail()">
+  <div class="drawer" id="drawer"></div>
+</div>
+
 <script>
 var DEMO = new URLSearchParams(location.search).get("demo")==="1";
+var LICENSES = [];
 function fmtMoney(cents,cur){ cur=(cur||"usd").toUpperCase(); return (cents<0?"-":"")+"$"+Math.abs(cents/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtDate(ms){ if(!ms) return "—"; var d=new Date(ms); return (d.getMonth()+1)+"/"+d.getDate()+"/"+String(d.getFullYear()).slice(2); }
+function daysSince(ms){ if(!ms) return null; return Math.max(0,Math.floor((Date.now()-ms)/86400000)); }
 function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
 function tok(){ return localStorage.getItem("joolt_admin_token")||""; }
 function saveTok(){ var v=document.getElementById("tok").value.trim(); if(!v) return; localStorage.setItem("joolt_admin_token",v); load(); }
 function logout(){ localStorage.removeItem("joolt_admin_token"); document.getElementById("app").classList.add("hide"); document.getElementById("gate").classList.remove("hide"); }
 function show(app){ document.getElementById("gate").classList.toggle("hide",app); document.getElementById("app").classList.toggle("hide",!app); }
 
-function demoData(){ return { ok:true, generatedAt:Date.now(), priceLicenseSet:true,
+function demoData(){ var D=Date.now(); return { ok:true, generatedAt:D, priceLicenseSet:true,
   balance:{available:184230,pending:41200,currency:"usd"},
   kpis:{activeLicenses:17,totalLicenseCustomers:21,mrr:52480,rev30:389700,subsCount:23},
   setupSales:{guided:6,concierge:2,managed:4},
   licenses:[
-   {id:"cus_Qa1",email:"mia@ridgelinehvac.com",status:"active",tier:"founders",periodEnd:Date.now()+18*864e5,devices:1},
-   {id:"cus_Qa2",email:"owner@brightclean.co",status:"trialing",tier:"standard",periodEnd:Date.now()+2*864e5,devices:2},
-   {id:"cus_Qa3",email:"j@northstarhome.io",status:"active",tier:"founders",periodEnd:Date.now()+27*864e5,devices:2},
-   {id:"cus_Qa4",email:"deb@coastalplumb.com",status:"past_due",tier:"standard",periodEnd:Date.now()-3*864e5,devices:3}
+   {id:"cus_Qa1",email:"mia@ridgelinehvac.com",name:"Ridgeline HVAC",created:D-41*864e5,status:"active",tier:"founders",mrr:2499,periodEnd:D+18*864e5,devices:1,
+     usage:{v:1,fs:D-41*864e5,ls:D-2*36e5,tour:1,jobs:38,live:1,conn:4,cver:1,contacts:26,ind:"Home services",size:"Solo"},
+     purchases:[{amount:9900,created:D-41*864e5,label:"Founder's Edition",refunded:0},{amount:19900,created:D-30*864e5,label:"Guided Setup $199",refunded:0}]},
+   {id:"cus_Qa2",email:"owner@brightclean.co",name:"Bright Clean Co",created:D-2*864e5,status:"trialing",tier:"standard",mrr:2499,periodEnd:D+1*864e5,devices:2,
+     usage:{v:1,fs:D-2*864e5,ls:D-20*36e5,tour:0,jobs:1,live:0,conn:0,cver:0,contacts:2,ind:"Cleaning",size:"2-5"},
+     purchases:[{amount:19700,created:D-2*864e5,label:"SMB Suite",refunded:0}]},
+   {id:"cus_Qa3",email:"j@northstarhome.io",name:"Northstar Home Services",created:D-27*864e5,status:"active",tier:"founders",mrr:2499,periodEnd:D+3*864e5,devices:2,
+     usage:{v:1,fs:D-27*864e5,ls:D-5*36e5,tour:1,jobs:52,live:0,conn:5,cver:0,contacts:63,ind:"Home services",size:"6-10"},
+     purchases:[{amount:9900,created:D-27*864e5,label:"Founder's Edition",refunded:0},{amount:75000,created:D-6*36e5,label:"Concierge Setup $750",refunded:0}]},
+   {id:"cus_Qa4",email:"deb@coastalplumb.com",name:"Coastal Plumbing",created:D-12*864e5,status:"past_due",tier:"standard",mrr:2499,periodEnd:D-3*864e5,devices:3,
+     usage:{v:1,fs:D-12*864e5,ls:D-9*864e5,tour:1,jobs:7,live:0,conn:2,cver:0,contacts:11,ind:"Plumbing",size:"Solo"},
+     purchases:[{amount:19700,created:D-12*864e5,label:"SMB Suite",refunded:0}]}
   ],
   recentCharges:[
-   {amount:75000,created:Date.now()-6*36e5,email:"j@northstarhome.io",desc:"JOOLT Concierge Setup",refunded:0},
-   {amount:19900,created:Date.now()-28*36e5,email:"mia@ridgelinehvac.com",desc:"JOOLT Guided Setup",refunded:0},
-   {amount:9900,created:Date.now()-2*864e5,email:"owner@brightclean.co",desc:"Founder's Edition",refunded:0},
-   {amount:7900,created:Date.now()-3*864e5,email:"deb@coastalplumb.com",desc:"Managed Connections",refunded:0}
+   {amount:75000,created:D-6*36e5,email:"j@northstarhome.io",desc:"JOOLT Concierge Setup",refunded:0},
+   {amount:19900,created:D-30*864e5,email:"mia@ridgelinehvac.com",desc:"JOOLT Guided Setup",refunded:0},
+   {amount:9900,created:D-2*864e5,email:"owner@brightclean.co",desc:"Founder's Edition",refunded:0},
+   {amount:7900,created:D-3*864e5,email:"deb@coastalplumb.com",desc:"Managed Connections",refunded:0}
   ] }; }
 
 async function load(){
@@ -101,22 +141,63 @@ async function load(){
   try{
     var data;
     if(DEMO){ data=demoData(); }
-    else{
-      var r=await fetch("/api/admin?token="+encodeURIComponent(tok()),{headers:{"x-admin-token":tok()}});
-      data=await r.json();
-    }
+    else{ var r=await fetch("/api/admin?token="+encodeURIComponent(tok()),{headers:{"x-admin-token":tok()}}); data=await r.json(); }
     if(data.error==="unauthorized"){ logout(); document.getElementById("gateErr").textContent="Invalid token."; return; }
     render(data);
   }catch(e){ document.getElementById("body").innerHTML='<div class="note">Could not load: '+esc(e)+'</div>'; }
 }
 
+function upsell(l){
+  var u=l.usage||{}; var d=daysSince(l.created); var jobs=u.jobs||0; var tour=u.tour===1;
+  var hasConcierge=(l.purchases||[]).some(function(p){return p.amount===75000;});
+  var hasGuided=(l.purchases||[]).some(function(p){return p.amount===19900;});
+  if(jobs>=20 && !hasConcierge) return {cls:"hot", t:"<b>Power user.</b> "+jobs+" automations run and no done-for-you yet — pitch <b>Sophia Presence (voice)</b> or Concierge Setup."};
+  if((u.contacts||0)>=15 && u.live===0) return {cls:"hot", t:"<b>Lots of leads, automation still off.</b> "+(u.contacts||0)+" contacts but live mode off — offer Concierge to switch it on for them."};
+  if(!tour && d!=null && d>=2) return {cls:"warn", t:"<b>Stalled onboarding.</b> Signed up "+d+"d ago and hasn't finished the guided tour — nudge with Guided Setup ($199)."};
+  if((u.conn||0)>0 && u.cver===0) return {cls:"warn", t:"<b>Picked tools, not verified.</b> Selected "+(u.conn||0)+" connector"+((u.conn||0)>1?"s":"")+" but none verified — Concierge ($750) closes this."};
+  if(l.status==="past_due"||l.status==="unpaid") return {cls:"warn", t:"<b>Payment failing.</b> Recover this license before it churns."};
+  return {cls:"ok", t:"<b>Healthy.</b> Engaged and current — keep nurturing; watch for a Presence trigger."};
+}
+
+function openDetail(i){
+  var l=LICENSES[i]; if(!l) return; var u=l.usage||{}; var cur="usd";
+  var d=daysSince(l.created); var last=u.ls?daysSince(u.ls):null;
+  var sig=upsell(l);
+  var chk=function(b){return '<span class="chk '+(b?"y":"n")+'">'+(b?"Yes":"No")+'</span>';};
+  var h='<div class="dh"><div class="mark">'+esc((l.name||l.email||"?").slice(0,1).toUpperCase())+'</div>'+
+    '<div><h3>'+esc(l.name||l.email||"Customer")+'</h3><div class="mono">'+esc(l.id||"")+'</div></div>'+
+    '<button class="x" onclick="closeDetail()">&times;</button></div>'+
+    '<div style="font-size:12.5px;color:var(--dim);">'+esc(l.email||"")+' &middot; <span class="pill '+esc(l.status)+'">'+esc(l.status)+'</span> &middot; '+esc(l.tier||"")+'</div>'+
+    '<div class="signal '+sig.cls+'">'+sig.t+'</div>'+
+    '<div class="grid2">'+
+      stat("Signed up", fmtDate(l.created)+(d!=null?' <small>('+d+'d ago)</small>':'')) +
+      stat("Last active", u.ls?(fmtDate(u.ls)+(last!=null?' <small>('+last+'d)</small>':'')):'—') +
+      stat("Automations run", (u.jobs!=null?u.jobs:'—')) +
+      stat("Guided tour", (u.tour!=null?(u.tour?'Completed':'Not done'):'—')) +
+      stat("MRR", fmtMoney(l.mrr||0,cur)) +
+      stat("Renews / trial ends", fmtDate(l.periodEnd)) +
+      stat("Connectors", (u.conn!=null?(u.conn+(u.cver?" · verified":" · not verified")):'—')) +
+      stat("Contacts", (u.contacts!=null?u.contacts:'—')) +
+      stat("Live mode", (u.live!=null?(u.live?'ON':'off'):'—')) +
+      stat("Devices", (l.devices||0)+' / 2'+((l.devices||0)>=3?' ⚠':'')) +
+    '</div>'+
+    (u.ind||u.size?'<div class="dlabel">Business</div><div class="stat"><div class="v" style="font-size:13px;">'+esc(u.ind||'—')+(u.size?(' &middot; '+esc(u.size)):'')+'</div></div>':'')+
+    '<div class="dlabel">Purchase history</div><div class="stat plist">'+
+      ((l.purchases&&l.purchases.length)? l.purchases.map(function(p){return '<div class="pr"><span>'+esc(p.label)+'</span><span style="color:var(--dim);">'+fmtDate(p.created)+' &middot; '+fmtMoney(p.amount,cur)+'</span></div>';}).join('') : '<div style="color:var(--muted);padding:6px 0;">No one-time purchases recorded.</div>')+
+    '</div>';
+  document.getElementById("drawer").innerHTML=h;
+  document.getElementById("overlay").classList.add("show");
+}
+function closeDetail(){ document.getElementById("overlay").classList.remove("show"); }
+function stat(l,v){ return '<div class="stat"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>'; }
+
 function render(d){
-  var stamp=document.getElementById("stamp");
-  var b=document.getElementById("body");
+  var stamp=document.getElementById("stamp"), b=document.getElementById("body");
   if(d.error==="admin_token_not_set"){
-    b.innerHTML='<div class="note"><b>Almost there — set your admin token.</b><br>In Vercel → your project → <b>Settings → Environment Variables</b>, add <code>ADMIN_TOKEN</code> = a long random string, then redeploy. Enter that same value here.<br><br>'+esc(d.hint||"")+'</div>';
+    b.innerHTML='<div class="note"><b>Almost there — set your admin token.</b><br>In Vercel → your project → <b>Settings → Environment Variables</b>, add <code>ADMIN_TOKEN</code> = a long random string, then redeploy. Enter that same value here.</div>';
     stamp.textContent=""; return;
   }
+  LICENSES=d.licenses||[];
   stamp.textContent="updated "+new Date(d.generatedAt).toLocaleTimeString();
   var k=d.kpis||{}, s=d.setupSales||{}, bal=d.balance||{};
   var html='';
@@ -127,31 +208,23 @@ function render(d){
     kpi("Revenue · 30d", fmtMoney(k.rev30||0,bal.currency), "net of refunds")+
     kpi("Available balance", fmtMoney(bal.available||0,bal.currency), fmtMoney(bal.pending||0,bal.currency)+" pending")+
   '</div>';
-
   html+='<h2>Setup services sold (recent)</h2><div class="setup">'+
-    setupCard("Guided · $199", s.guided||0)+
-    setupCard("Concierge · $750", s.concierge||0)+
-    setupCard("Managed · $79/mo", s.managed||0)+
+    setupCard("Guided · $199", s.guided||0)+ setupCard("Concierge · $750", s.concierge||0)+ setupCard("Managed · $79/mo", s.managed||0)+
   '</div>';
-
-  html+='<h2>Licenses &amp; users ('+((d.licenses||[]).length)+')</h2><div class="card"><table><thead><tr><th>Email</th><th>Key</th><th>Tier</th><th>Status</th><th>Renews / trial ends</th><th>Devices</th></tr></thead><tbody>';
-  (d.licenses||[]).forEach(function(l){
-    var dc=l.devices||0, cls=dc>=3?"bad":(dc>=2?"warn":"");
-    html+='<tr><td>'+esc(l.email||"—")+'</td><td class="mono">'+esc(l.id||"—")+'</td><td>'+esc(l.tier||"")+'</td><td><span class="pill '+esc(l.status)+'">'+esc(l.status)+'</span></td><td>'+fmtDate(l.periodEnd)+'</td><td class="dev '+cls+'">'+dc+' / 2'+(dc>=3?' ⚠':'')+'</td></tr>';
+  html+='<h2>Clients — click a row for the full record</h2><div class="card"><table><thead><tr><th>Client</th><th>Signed up</th><th>Tier</th><th>Status</th><th>Jobs</th><th>Tour</th><th>Devices</th></tr></thead><tbody class="clickable">';
+  LICENSES.forEach(function(l,i){
+    var u=l.usage||{}, dc=l.devices||0, cls=dc>=3?"bad":(dc>=2?"warn":"");
+    html+='<tr onclick="openDetail('+i+')"><td><b>'+esc(l.name||l.email||"—")+'</b><br><span class="mono">'+esc(l.id||"")+'</span></td><td>'+fmtDate(l.created)+'</td><td>'+esc(l.tier||"")+'</td><td><span class="pill '+esc(l.status)+'">'+esc(l.status)+'</span></td><td>'+(u.jobs!=null?u.jobs:'—')+'</td><td>'+(u.tour!=null?(u.tour?'✓':'—'):'—')+'</td><td class="dev '+cls+'">'+dc+' / 2'+(dc>=3?' ⚠':'')+'</td></tr>';
   });
-  if(!(d.licenses||[]).length) html+='<tr><td colspan="6" style="color:var(--muted);">No license subscriptions yet.</td></tr>';
+  if(!LICENSES.length) html+='<tr><td colspan="7" style="color:var(--muted);">No license subscriptions yet.</td></tr>';
   html+='</tbody></table></div>';
-
   html+='<h2>Recent payments</h2><div class="card"><table><thead><tr><th>Date</th><th>Customer</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead><tbody>';
-  (d.recentCharges||[]).forEach(function(c){
-    html+='<tr><td>'+fmtDate(c.created)+'</td><td>'+esc(c.email||"—")+'</td><td>'+esc(c.desc||"—")+'</td><td style="text-align:right;font-weight:700;">'+fmtMoney(c.amount-(c.refunded||0),bal.currency)+'</td></tr>';
-  });
+  (d.recentCharges||[]).forEach(function(c){ html+='<tr><td>'+fmtDate(c.created)+'</td><td>'+esc(c.email||"—")+'</td><td>'+esc(c.desc||"—")+'</td><td style="text-align:right;font-weight:700;">'+fmtMoney(c.amount-(c.refunded||0),bal.currency)+'</td></tr>'; });
   if(!(d.recentCharges||[]).length) html+='<tr><td colspan="4" style="color:var(--muted);">No charges yet.</td></tr>';
   html+='</tbody></table></div>';
-
   b.innerHTML=html;
 }
-function kpi(l,v,d,grad){ return '<div class="kpi"><div class="l">'+l+'</div><div class="v'+(grad?' grad':'')+'">'+v+'</div><div class="d">'+(d||"")+'</div></div>'; }
+function kpi(l,v,dd,grad){ return '<div class="kpi"><div class="l">'+l+'</div><div class="v'+(grad?' grad':'')+'">'+v+'</div><div class="d">'+(dd||"")+'</div></div>'; }
 function setupCard(l,v){ return '<div class="s"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>'; }
 
 if(DEMO){ show(true); load(); }

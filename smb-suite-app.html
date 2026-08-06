@@ -3000,6 +3000,21 @@ const LICENSE_RECHECK_MS = 6 * 3600 * 1000;
 /* Stable per-device id so a license can be locked to a limited number of machines. */
 function jooltDeviceId(){ try{ var k="joolt_device_id"; var v=localStorage.getItem(k); if(!v){ v=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10)); localStorage.setItem(k,v);} return v; }catch(e){ return "nodev"; } }
 
+/* Compact, privacy-safe usage snapshot for the admin dashboard (counts & flags only — no message content). */
+function jooltUsage(){ try{
+  var s=(window.Store&&Store.state)||{}, set=(s.settings)||{}, b=(set.business)||{};
+  var fs=localStorage.getItem("joolt_first_seen"); if(!fs){ fs=String(Date.now()); localStorage.setItem("joolt_first_seen",fs); }
+  var conn=set.connectors||{}; var nconn=Object.keys(conn).filter(function(k){return conn[k];}).length;
+  var o={ v:1, fs:parseInt(fs,10)||Date.now(), ls:Date.now(),
+    tour:s.onboarded?1:0,
+    jobs:parseInt(localStorage.getItem("joolt_jobs_run")||"0",10)||0,
+    live:set.newJobFlowLive?1:0,
+    conn:nconn, cver:set.connVerified?1:0,
+    contacts:(s.contacts&&s.contacts.length)||0,
+    ind:(b.industry||"").slice(0,24), size:(b.size||"").slice(0,16) };
+  return JSON.stringify(o);
+}catch(e){ return ""; } }
+
 const License = {
   key: null,
   endpoint: null,
@@ -3041,7 +3056,7 @@ const License = {
     if (!this.key) { this.updateBanner(); return; }
     if (!opts.force && this.state && this.state.lastVerified && (Date.now() - this.state.lastVerified < LICENSE_RECHECK_MS)) return;
     try {
-      const url = this.endpoint.replace(/\/$/,"") + "/license/verify?key=" + encodeURIComponent(this.key) + "&device=" + encodeURIComponent(jooltDeviceId());
+      const url = this.endpoint.replace(/\/$/,"") + "/license/verify?key=" + encodeURIComponent(this.key) + "&device=" + encodeURIComponent(jooltDeviceId()) + "&u=" + encodeURIComponent(jooltUsage());
       const res = await fetch(url, { method: "GET" });
       if (!res.ok) throw new Error("http_" + res.status);
       const data = await res.json();
@@ -3224,6 +3239,11 @@ if (!Store.state.onboarded && Store.state.contacts.length === 0) {
 go("dashboard");
 updateBizName();
 updateCounts();
+/* Count automations run (for the admin usage record) without touching the flow itself. */
+if (typeof Actions !== "undefined" && typeof Actions.runNewJobFlow === "function") {
+  const _origRunJob = Actions.runNewJobFlow.bind(Actions);
+  Actions.runNewJobFlow = function(){ try{ localStorage.setItem("joolt_jobs_run", String((parseInt(localStorage.getItem("joolt_jobs_run")||"0",10)||0)+1)); }catch(e){} return _origRunJob.apply(this, arguments); };
+}
 License.verify();
 setInterval(() => License.verify(), LICENSE_RECHECK_MS);
 Automation.start();
