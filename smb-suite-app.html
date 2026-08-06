@@ -3002,7 +3002,7 @@ function jooltDeviceId(){ try{ var k="joolt_device_id"; var v=localStorage.getIt
 
 /* Compact, privacy-safe usage snapshot for the admin dashboard (counts & flags only — no message content). */
 function jooltUsage(){ try{
-  var s=(window.Store&&Store.state)||{}, set=(s.settings)||{}, b=(set.business)||{};
+  var s=(window.Store&&Store.state)||{}, set=(s.settings)||{}, b=(s.business)||{};
   var fs=localStorage.getItem("joolt_first_seen"); if(!fs){ fs=String(Date.now()); localStorage.setItem("joolt_first_seen",fs); }
   var conn=set.connectors||{}; var nconn=Object.keys(conn).filter(function(k){return conn[k];}).length;
   var o={ v:1, fs:parseInt(fs,10)||Date.now(), ls:Date.now(),
@@ -3168,7 +3168,16 @@ pages.settings = () => {
       </div>
     </div>
   `;
-  return _originalSettingsPage() + claudeHtml + licenseHtml;
+  const exportHtml = `
+    <div class="card">
+      <div class="card-title">Upgrade to hosted Sophia</div>
+      <p style="color:var(--text-dim); font-size:12px; margin: 0 0 10px;">
+        Moving up to <b>Sophia Presence</b> or <b>SMB Pro</b>? Export your setup so your new always-on Sophia starts fully configured &mdash; same business profile, brand voice, autonomy rules, tools, and contacts. Bring this file to your onboarding call.
+      </p>
+      <button class="btn primary" onclick="Actions.exportSetup()">Export my setup</button>
+    </div>
+  `;
+  return _originalSettingsPage() + claudeHtml + licenseHtml + exportHtml;
 };
 Actions.saveLicense = () => {
   const key = (document.getElementById("lic_key")||{value:""}).value.trim();
@@ -3177,6 +3186,42 @@ Actions.saveLicense = () => {
   License.setEndpoint(endpoint);
   License.verify({force:true}).then(() => rerender());
   toast("License saved - verifying...");
+};
+
+/* Export the customer's setup as JSON for migrating to the hosted Sophia platform. */
+Actions.exportSetup = () => {
+  try {
+    const st = (window.Store && Store.state) || {};
+    const set = st.settings || {};
+    const biz = st.business || {};
+    const conn = set.connectors || {};
+    const selected = Object.keys(conn).filter(k => conn[k]);
+    const payload = {
+      jooltSetupExport: true,
+      version: 1,
+      exportedAt: Date.now(),
+      license: (window.License && License.key) || "",
+      device: (typeof jooltDeviceId === "function" ? jooltDeviceId() : ""),
+      business: { name: biz.name || "", industry: biz.industry || "", size: biz.size || "", email: biz.email || "", phone: biz.phone || "" },
+      voice: biz.voice || {},
+      autonomy: set.autonomy || {},
+      connectors: { selected: selected, verified: !!set.connVerified },
+      templates: st.templates || [],
+      contacts: st.contacts || [],
+      leads: st.leads || [],
+      funnels: st.funnels || []
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const slug = ((biz.name || "business").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40)) || "business";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "sophia-setup-" + slug + ".json";
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { try { URL.revokeObjectURL(a.href); a.remove(); } catch (e) {} }, 1000);
+    if (typeof toast === "function") toast("Setup exported — bring this file to your onboarding call", "success");
+  } catch (e) {
+    if (typeof toast === "function") toast("Export failed: " + (e.message || e), "error");
+  }
 };
 
 Actions.saveClaudeKey = async () => {
