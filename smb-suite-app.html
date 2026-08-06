@@ -3226,10 +3226,12 @@ Automation.start();
 // Ensure clicking outside modals closes them
 document.getElementById("wizardModal").addEventListener("click", e => { if (e.target.id === "wizardModal") closeWizard(); });
 document.getElementById("genericModal").addEventListener("click", e => { if (e.target.id === "genericModal") Modal.close(); });
-/* ===== Integrations hub — runtime module (customer funnel, no config exposed) ===== */
+/* ===== Integrations hub — runtime module (pay-in-funnel, delivery gated on a booked call) ===== */
 (function(){
   if (typeof pages === "undefined" || typeof Actions === "undefined" || typeof Store === "undefined") return;
-  var CONN_SETUP_URL="https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L";
+  var CONN_GUIDED_URL="https://buy.stripe.com/7sYaEQc2l8lHadCafxcbC12";   /* $199 one-time */
+  var CONN_SETUP_URL="https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L";    /* $750 concierge */
+  var CONN_MANAGED_URL="https://buy.stripe.com/9B6eV6eat6dz99yfzRcbC13";  /* $79/mo */
   var CONN_CALL_URL="https://joolt.io/agent-rep";
   var INTEGRATIONS={
     quickbooks:{name:"QuickBooks",cat:"Money",icon:"&#128179;",does:"Pull P&amp;L, flag deductions, prep close packets."},
@@ -3247,24 +3249,65 @@ document.getElementById("genericModal").addEventListener("click", e => { if (e.t
     googledrive:{name:"Google Drive",cat:"Docs",icon:"&#128193;",does:"Read and file documents automatically."}
   };
   function connSel(){ var c=Store.state.settings.connectors||{}; return Object.keys(INTEGRATIONS).filter(function(k){return c[k];}); }
+
+  Actions.connBuyGuided=function(){ window.open(CONN_GUIDED_URL,"_blank"); };
+  Actions.connBookSetup=function(){ window.open(CONN_SETUP_URL,"_blank"); };
+  Actions.connBuyManaged=function(){ window.open(CONN_MANAGED_URL,"_blank"); };
+  Actions.connBookCall=function(){ window.open(CONN_CALL_URL,"_blank"); };
+  Actions.connToggle=function(k){ Store.update(function(s){ s.settings.connectors=s.settings.connectors||{}; s.settings.connectors[k]=!s.settings.connectors[k]; }); go("integrations"); };
+  Actions.connMarkVerified=function(){ Store.update(function(s){ s.settings.connVerified=true; }); toast("Connections verified — live automation unlocked"); Modal.close(); go("integrations"); };
+  Actions.openIntegrations=function(){ Modal.close(); go("integrations"); };
+
+  /* Three payable setup tiers. Every paid tier still requires a booked onboarding call to activate. */
+  function connTiers(){
+    return ''+
+    '<div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin:18px 0 8px;">Get your tools connected &mdash; pick your level</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">'+
+      '<div style="border:1px solid rgba(124,58,237,.5);border-radius:14px;padding:16px;background:linear-gradient(135deg,rgba(124,58,237,.10),rgba(34,211,238,.06));">'+
+        '<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:#C4B5FD;background:rgba(124,58,237,.18);display:inline-block;padding:3px 8px;border-radius:999px;margin-bottom:8px;">MOST POPULAR</div>'+
+        '<div style="font-size:15px;font-weight:800;">Guided Setup</div>'+
+        '<div style="font-size:22px;font-weight:800;margin:2px 0;">$199 <span style="font-size:11px;color:var(--text-dim);font-weight:600;">one-time</span></div>'+
+        '<div style="font-size:12px;color:var(--text-dim);line-height:1.45;margin-bottom:10px;">We walk you through it on a live screen-share and connect up to 5 tools with you.</div>'+
+        '<button class="btn primary sm" style="width:100%;justify-content:center;" onclick="Actions.connBuyGuided()">Pay &amp; book &mdash; $199 &rarr;</button>'+
+      '</div>'+
+      '<div style="border:1px solid var(--border);border-radius:14px;padding:16px;background:var(--panel);">'+
+        '<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:#22D3EE;background:rgba(34,211,238,.14);display:inline-block;padding:3px 8px;border-radius:999px;margin-bottom:8px;">DONE FOR YOU</div>'+
+        '<div style="font-size:15px;font-weight:800;">Concierge Setup</div>'+
+        '<div style="font-size:22px;font-weight:800;margin:2px 0;">$750 <span style="font-size:11px;color:var(--text-dim);font-weight:600;">one-time</span></div>'+
+        '<div style="font-size:12px;color:var(--text-dim);line-height:1.45;margin-bottom:10px;">90-min kickoff, full connector setup, voice training, go-live plus 30 days support.</div>'+
+        '<button class="btn primary sm" style="width:100%;justify-content:center;" onclick="Actions.connBookSetup()">Pay &amp; book &mdash; $750 &rarr;</button>'+
+      '</div>'+
+      '<div style="border:1px solid var(--border);border-radius:14px;padding:16px;background:var(--panel);">'+
+        '<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:#FDBA74;background:rgba(251,146,60,.14);display:inline-block;padding:3px 8px;border-radius:999px;margin-bottom:8px;">KEEP IT RUNNING</div>'+
+        '<div style="font-size:15px;font-weight:800;">Managed Connections</div>'+
+        '<div style="font-size:22px;font-weight:800;margin:2px 0;">$79 <span style="font-size:11px;color:var(--text-dim);font-weight:600;">/mo</span></div>'+
+        '<div style="font-size:12px;color:var(--text-dim);line-height:1.45;margin-bottom:10px;">We monitor your connectors, re-auth expired tokens, and fix breakages first.</div>'+
+        '<button class="btn primary sm" style="width:100%;justify-content:center;" onclick="Actions.connBuyManaged()">Pay &amp; book &mdash; $79/mo &rarr;</button>'+
+      '</div>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 16px;border-radius:12px;border:1px dashed rgba(34,211,238,.4);background:rgba(34,211,238,.05);flex-wrap:wrap;">'+
+      '<span style="font-size:18px;">&#128197;</span>'+
+      '<div style="flex:1;min-width:220px;font-size:12.5px;color:var(--text-dim);line-height:1.5;"><b style="color:#FFF;">A live onboarding call is required to activate any paid setup.</b> As soon as you pay, you book your call &mdash; we deliver on the call, not before.</div>'+
+      '<button class="btn ghost sm" onclick="Actions.connBookCall()">Prefer to talk first?</button>'+
+    '</div>';
+  }
+  window.connTiers=connTiers;
+
   window.Integrations={ info:function(k){ var m=INTEGRATIONS[k]; if(!m)return; Modal.info({ title:m.name, body:
     '<p style="color:var(--text-dim);font-size:13px;">'+m.does+'</p>'+
     '<p style="color:var(--text-dim);font-size:13px;">'+m.name+' connects to Sophia through <b style="color:#FFF;">MCP on your own computer</b>, so your data never leaves your machine.</p>'+
-    '<p style="color:var(--text-dim);font-size:13px;">Setup is done for you &mdash; we install it, sign you in, and verify it live on your setup call.</p>'+
-    '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn primary sm" onclick="Actions.connBookSetup()">Set up my tools &mdash; $750</button></div>'
+    '<p style="color:var(--text-dim);font-size:13px;">Pick a setup level below &mdash; we install it, sign you in, and verify it live on your onboarding call.</p>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="btn primary sm" onclick="Actions.connBuyGuided()">Guided &mdash; $199</button><button class="btn sm" onclick="Actions.connBookSetup()">Concierge &mdash; $750</button></div>'
   }); } };
-  Actions.connToggle=function(k){ Store.update(function(s){ s.settings.connectors=s.settings.connectors||{}; s.settings.connectors[k]=!s.settings.connectors[k]; }); go("integrations"); };
-  Actions.connMarkVerified=function(){ Store.update(function(s){ s.settings.connVerified=true; }); toast("Connections verified — live automation unlocked"); Modal.close(); go("integrations"); };
-  Actions.connBookSetup=function(){ window.open(CONN_SETUP_URL,"_blank"); };
-  Actions.connBookCall=function(){ window.open(CONN_CALL_URL,"_blank"); };
-  Actions.openIntegrations=function(){ Modal.close(); go("integrations"); };
-  window.connGateBody=function(){ return '<p style="color:var(--text-dim);font-size:13px;">Live automation runs on your <b style="color:#FFF;">real tools</b>, so Sophia needs them connected and verified first &mdash; and a browser can’t confirm a local connection. We wire everything up and switch it on live with you.</p><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;"><button class="btn primary" onclick="Actions.connBookSetup()">Have us set it up &mdash; $750 &rarr;</button><button class="btn" onclick="Actions.openIntegrations()">Open Integrations</button><button class="btn ghost" onclick="Actions.connMarkVerified()">Advanced: I’ve set it up</button></div>'; };
+
+  window.connGateBody=function(){ return '<p style="color:var(--text-dim);font-size:13px;">Live automation runs on your <b style="color:#FFF;">real tools</b>, so Sophia needs them connected and verified first &mdash; and a browser can&rsquo;t confirm a local connection. Pick a setup level and we switch it on live with you on your onboarding call.</p>'+connTiers()+'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn ghost" onclick="Actions.openIntegrations()">Open Integrations</button><button class="btn ghost" onclick="Actions.connMarkVerified()">Advanced: I&rsquo;ve set it up</button></div>'; };
+
   pages.integrations=function(){
     var c=Store.state.settings.connectors||{}, sel=connSel(), verified=!!Store.state.settings.connVerified;
     var cats={}; Object.keys(INTEGRATIONS).forEach(function(k){ var m=INTEGRATIONS[k]; (cats[m.cat]=cats[m.cat]||[]).push(k); });
-    var html='<div><h1 class="page-title">Integrations &mdash; connect your tools</h1><div class="page-sub">Sophia works with the tools you already use, through MCP on your own computer &mdash; your data never leaves your machine. Tell us what you use and we’ll wire it all up for you.</div></div>';
-    html+='<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(34,211,238,.10));border:1px solid rgba(124,58,237,.35);margin:16px 0 18px;flex-wrap:wrap;"><div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#7C3AED,#22D3EE);display:grid;place-items:center;font-weight:900;color:#fff;flex-shrink:0;">S</div><div style="flex:1;min-width:220px;font-size:13.5px;color:var(--text);line-height:1.5;"><b>Done-for-you setup.</b> A JOOLT expert installs, authenticates, and <b>verifies live</b> every connector you use &mdash; on one call, in about an hour. No config files, no tech headaches.</div><button class="btn primary" onclick="Actions.connBookSetup()">Book my setup &mdash; $750 &rarr;</button><button class="btn ghost" onclick="Actions.connBookCall()">Talk first</button></div>';
-    html+='<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;border:1px solid var(--border);background:var(--panel);margin-bottom:8px;flex-wrap:wrap;"><span class="badge '+(verified?'green':'gray')+'" style="font-size:10px;">'+(verified?'Connections verified':'Not verified')+'</span><div style="flex:1;min-width:200px;font-size:12.5px;color:var(--text-dim);">'+(verified?'Live automation is unlocked &mdash; Sophia can run the New Job Flow on your real tools.':'Live automation unlocks once your tools are connected and verified. We handle that on your setup call.')+'</div>'+(verified?'':'<button class="btn sm" onclick="Actions.connBookSetup()">Get set up &mdash; $750</button>')+'</div>';
+    var html='<div><h1 class="page-title">Integrations &mdash; connect your tools</h1><div class="page-sub">Sophia works with the tools you already use, through MCP on your own computer &mdash; your data never leaves your machine. Tell us what you use, pick a setup level, and we&rsquo;ll wire it all up on your onboarding call.</div></div>';
+    html+=connTiers();
+    html+='<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;border:1px solid var(--border);background:var(--panel);margin:16px 0 8px;flex-wrap:wrap;"><span class="badge '+(verified?'green':'gray')+'" style="font-size:10px;">'+(verified?'Connections verified':'Not verified')+'</span><div style="flex:1;min-width:200px;font-size:12.5px;color:var(--text-dim);">'+(verified?'Live automation is unlocked &mdash; Sophia can run the New Job Flow on your real tools.':'Live automation unlocks after your onboarding call, once your tools are connected and verified.')+'</div></div>';
     Object.keys(cats).forEach(function(cat){
       html+='<div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin:16px 0 8px;">'+cat+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">';
       cats[cat].forEach(function(k){ var m=INTEGRATIONS[k], on=!!c[k];
@@ -3274,12 +3317,11 @@ document.getElementById("genericModal").addEventListener("click", e => { if (e.t
     });
     if(sel.length){
       var names=sel.map(function(k){return INTEGRATIONS[k].name;}).join(", ");
-      html+='<div style="margin-top:22px;padding:18px 20px;border-radius:12px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.05);"><b style="font-size:15px;">Your stack &mdash; '+sel.length+' tool'+(sel.length>1?'s':'')+'</b><p style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin:6px 0 12px;">'+names+'. We’ll install each one, sign you in, and verify it’s talking to Sophia &mdash; then switch on live automation with you. About an hour, done once.</p><div style="display:flex;gap:8px;flex-wrap:wrap;">'+(verified?'<span class="badge green">Verified &#10003;</span>':'<button class="btn primary sm" onclick="Actions.connBookSetup()">Set up my '+sel.length+' tool'+(sel.length>1?'s':'')+' &mdash; $750 &rarr;</button><button class="btn ghost sm" onclick="Actions.connMarkVerified()">Advanced: I’ve set it up myself</button>')+'</div></div>';
-    } else {
-      html+='<div style="margin-top:20px;padding:22px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--text-dim);font-size:13px;">Tick the tools you use above &mdash; then <a href="#" onclick="Actions.connBookSetup();return false;" style="color:var(--accent-2);">book your done-for-you setup ($750)</a> and we’ll wire them all up.</div>';
+      html+='<div style="margin-top:22px;padding:18px 20px;border-radius:12px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.05);"><b style="font-size:15px;">Your stack &mdash; '+sel.length+' tool'+(sel.length>1?'s':'')+'</b><p style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin:6px 0 12px;">'+names+'. Pick a setup level above &mdash; we install each one, sign you in, and verify it&rsquo;s talking to Sophia on your onboarding call, then switch on live automation with you.</p>'+(verified?'<span class="badge green">Verified &#10003;</span>':'<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn primary sm" onclick="Actions.connBuyGuided()">Guided &mdash; $199 &rarr;</button><button class="btn sm" onclick="Actions.connBookSetup()">Concierge &mdash; $750 &rarr;</button><button class="btn ghost sm" onclick="Actions.connMarkVerified()">Advanced: I&rsquo;ve set it up myself</button></div>')+'</div>';
     }
     return html;
   };
+
   var navAnchor=document.querySelector('.nav-item[data-page="automations"]');
   if(navAnchor && !document.querySelector('.nav-item[data-page="integrations"]')){
     var d=document.createElement("div"); d.className="nav-item"; d.setAttribute("data-page","integrations");
