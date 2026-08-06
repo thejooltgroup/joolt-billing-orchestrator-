@@ -5,11 +5,9 @@ export const config = { runtime: "edge" };
 const MAX_DEVICES = 2;
 
 export default async function handler(request) {
-  // Core verification is unchanged.
   const res = await handleLicenseVerify(request);
 
-  // Device-lock + usage telemetry are additive and fail-open: any error returns the
-  // original response, so a bug here can never lock out or disrupt a paying customer.
+  // Additive + fail-open: any error returns the original response.
   try {
     const url = new URL(request.url);
     const key = url.searchParams.get("key") || "";
@@ -17,13 +15,27 @@ export default async function handler(request) {
     if (!key.startsWith("cus_")) return res;
 
     const data = await res.clone().json();
-    if (!data || data.valid !== true) return res;             // only track otherwise-valid licenses
+    if (!data || data.valid !== true) return res;
     if (data.tier === "master" || data.tier === "pilot") return res;
 
     const E = env();
     const cust = await stripe(E, "GET", `/v1/customers/${key}`);
     if (cust.error) return res;
     const meta = cust.metadata || {};
+
+    // ---- admin suspend / revoke (blocks access regardless of billing state) ----
+    const admStatus = (meta.joolt_status || "").toLowerCase();
+    if (admStatus === "suspended" || admStatus === "revoked") {
+      return json({
+        valid: false,
+        status: admStatus,
+        tier: data.tier,
+        reason: admStatus === "suspended"
+          ? "This license is suspended. Contact admin@thejooltgroup.com."
+          : "This license has been revoked.",
+        serverTime: Date.now()
+      }, 200, CORS);
+    }
 
     // ---- device lock ----
     let devices = [];
@@ -42,16 +54,14 @@ export default async function handler(request) {
       }
     }
 
-    // ---- usage snapshot (counts & flags only) ----
+    // ---- usage snapshot ----
     let usage = {};
     try { usage = JSON.parse(meta.joolt_usage || "{}") || {}; } catch (e) { usage = {}; }
     let incoming = null;
     try { const raw = url.searchParams.get("u"); if (raw) incoming = JSON.parse(raw); } catch (e) {}
     if (incoming && typeof incoming === "object") {
       const merged = Object.assign({}, usage, incoming);
-      // preserve the earliest first-seen we've ever recorded
       if (usage.fs && incoming.fs) merged.fs = Math.min(usage.fs, incoming.fs);
-      // write at most ~once/6h unless a meaningful counter changed
       const stale = !usage.ls || (now - usage.ls > 6 * 3600 * 1000);
       const changed = usage.jobs !== incoming.jobs || usage.tour !== incoming.tour ||
                       usage.conn !== incoming.conn || usage.cver !== incoming.cver ||
