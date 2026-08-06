@@ -1,7 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    { "source": "/", "has": [{ "type": "host", "value": "admin.smb.joolt.io" }], "destination": "/admin.html", "permanent": false }
+  ],
   "rewrites": [
-    { "source": "/", "has": [{ "type": "host", "value": "admin.smb.joolt.io" }], "destination": "/admin.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/checkout/founders", "destination": "/api/checkout/founders" },
     { "source": "/checkout/suite",    "destination": "/api/checkout/suite" },
