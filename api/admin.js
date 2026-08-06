@@ -24,7 +24,6 @@ export default async function handler(request) {
     const bal = await stripe(E, "GET", "/v1/balance");
     const sum = a => (a || []).reduce((n, x) => n + (x.amount || 0), 0);
 
-    // Subscriptions (up to 3 pages of 100), with customer expanded.
     let subs = [], after = null;
     for (let i = 0; i < 3; i++) {
       const p = new URLSearchParams();
@@ -66,17 +65,39 @@ export default async function handler(request) {
     const setup = { guided: 0, concierge: 0, managed: 0 };
     charges.forEach(c => { const a = c.amount; if (a === 19900) setup.guided++; else if (a === 75000) setup.concierge++; else if (a === 7900) setup.managed++; });
 
+    // per-customer purchase history (from charges), keyed by customer id + email
+    const purchasesByCust = {}, purchasesByEmail = {};
+    const label = a => a === 19900 ? "Guided Setup $199" : a === 75000 ? "Concierge Setup $750" : a === 7900 ? "Managed $79/mo" : ("$" + (a / 100).toFixed(2));
+    charges.forEach(c => {
+      const row = { amount: c.amount, created: c.created * 1000, label: c.description || label(c.amount), refunded: c.amount_refunded || 0 };
+      const cid = typeof c.customer === "string" ? c.customer : (c.customer && c.customer.id);
+      const em = (c.billing_details && c.billing_details.email) || null;
+      if (cid) (purchasesByCust[cid] = purchasesByCust[cid] || []).push(row);
+      if (em) (purchasesByEmail[em] = purchasesByEmail[em] || []).push(row);
+    });
+
     const licenses = [];
     licSubs.sort((a, b) => (b.created || 0) - (a.created || 0)).forEach(s => {
       const cust = s.customer && typeof s.customer === "object" ? s.customer : null;
       const cid = cust ? cust.id : s.customer;
-      let devices = 0;
-      try { const d = JSON.parse((cust && cust.metadata && cust.metadata.joolt_devices) || "[]"); devices = Array.isArray(d) ? d.length : 0; } catch (e) {}
+      const meta = (cust && cust.metadata) || {};
+      let devices = [];
+      try { const d = JSON.parse(meta.joolt_devices || "[]"); devices = Array.isArray(d) ? d : []; } catch (e) {}
+      let usage = null;
+      try { usage = JSON.parse(meta.joolt_usage || "null"); } catch (e) {}
+      const purch = (purchasesByCust[cid] || (cust && cust.email && purchasesByEmail[cust.email]) || []).sort((a, b) => b.created - a.created);
       licenses.push({
-        id: cid, email: cust ? cust.email : null, status: s.status,
+        id: cid,
+        email: cust ? cust.email : null,
+        name: cust ? cust.name : null,
+        created: cust && cust.created ? cust.created * 1000 : (s.created ? s.created * 1000 : null),
+        status: s.status,
         tier: (s.metadata && s.metadata.tier) || "standard",
+        mrr: Math.round(monthly(s)),
         periodEnd: s.current_period_end ? s.current_period_end * 1000 : (s.trial_end ? s.trial_end * 1000 : null),
-        devices
+        devices: devices.length,
+        usage: usage,
+        purchases: purch.slice(0, 12)
       });
     });
 
