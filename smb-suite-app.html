@@ -1568,7 +1568,7 @@ const Actions = {
           s.deals.push({ id: dealId, contactId, title: "AC repair — 2nd floor", value: JOB_VALUE, stage: "quote", createdAt: Date.now() });
       }},
       { mod: "Leads", label: "◆ Lead scored 94 — HOT, ranked #1", fn: s => {
-          s.leads.push({ id: leadId, contactId, score: 94, source: "Phone", intent: "Emergency repair", nextStep: "Send estimate by EOD", status: "new", createdAt: Date.now() });
+          s.leads.push({ id: leadId, contactId, score: 94, source: "Phone", intent: ["Emergency repair"], nextStep: "Send estimate by EOD", status: "new", createdAt: Date.now() });
       }},
       { mod: "WebChat", label: "💬 Sophia opens follow-up chat window", fn: s => {
           s.chats.push({ id: uid(), contactId, transcript: "Sophia: Hi Alex — sending your estimate now. Any questions before I do?", status: "in_progress", when: Date.now() });
@@ -1736,7 +1736,7 @@ async function runLiveNewJobFlow(contactId, estimatedValue) {
 
   // Step 2: Lead scoring
   const leadId = uid();
-  Store.update(s => { s.leads.push({ id: leadId, contactId, score: 88, source: contact.source||"Phone", intent: "Auto-detected job", nextStep: "Draft estimate", status: "new", createdAt: Date.now() }); });
+  Store.update(s => { s.leads.push({ id: leadId, contactId, score: 88, source: contact.source||"Phone", intent: ["Auto-detected job"], nextStep: "Draft estimate", status: "new", createdAt: Date.now() }); });
 
   // Step 3: Draft estimate email (draft unless auto-send)
   const emailId = uid();
@@ -2166,7 +2166,7 @@ pages.leads = () => {
             <td><span class="badge ${badgeClass}">${l.score}</span></td>
             <td><span class="clickable" onclick="Actions.viewContact('${l.contactId}')"><span class="avatar">${initials(c?c.name:"?")}</span>${escapeHtml(c?c.name:"?")}</span></td>
             <td>${escapeHtml(l.source)}</td>
-            <td style="color:var(--text-dim);">${(l.intent||[]).join(" · ")}</td>
+            <td style="color:var(--text-dim);">${escapeHtml(Array.isArray(l.intent) ? l.intent.join(" · ") : (l.intent || "-"))}</td>
             <td>${escapeHtml(l.nextStep||"-")}</td>
             <td>
               ${l.status==="converted" ? '<span class="badge green">Converted</span>' : `<button class="btn sm" onclick="Actions.followUpLead('${l.id}')">Follow up</button><button class="btn sm" onclick="Actions.convertLead('${l.id}')">Convert</button>`}
