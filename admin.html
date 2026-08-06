@@ -12,6 +12,8 @@
   .row{margin-left:auto;display:flex;gap:8px;align-items:center;}
   .btn{border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;}
   .btn.primary{background:var(--grad);border:none;color:#fff;}
+  .btn.warn{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.4);color:var(--amber);}
+  .btn.danger{background:rgba(248,113,113,.14);border-color:rgba(248,113,113,.45);color:var(--red);}
   .sub{color:var(--muted);font-size:12px;margin:2px 0 20px;}
   input[type=password],input[type=text]{background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;min-width:260px;}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:8px;}
@@ -32,6 +34,8 @@
   .pill.active{background:rgba(52,211,153,.16);color:var(--green);}
   .pill.trialing{background:rgba(34,211,238,.16);color:var(--c);}
   .pill.past_due,.pill.unpaid,.pill.canceled,.pill.incomplete{background:rgba(248,113,113,.16);color:var(--red);}
+  .pill.suspended{background:rgba(251,191,36,.18);color:var(--amber);}
+  .pill.revoked{background:rgba(248,113,113,.2);color:var(--red);}
   .dev{font-weight:800;}.dev.warn{color:var(--amber);}.dev.bad{color:var(--red);}
   .setup{display:flex;gap:12px;flex-wrap:wrap;}
   .setup .s{flex:1;min-width:150px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:13px 15px;}
@@ -44,7 +48,6 @@
   .hide{display:none;}
   .foot{color:var(--muted);font-size:11px;margin-top:26px;text-align:center;}
   .err{color:var(--red);font-size:12.5px;margin-top:8px;}
-  /* detail drawer */
   .overlay{position:fixed;inset:0;background:rgba(3,5,15,.66);backdrop-filter:blur(3px);display:none;z-index:50;}
   .overlay.show{display:block;}
   .drawer{position:fixed;top:0;right:0;height:100%;width:min(520px,94vw);background:var(--bg2);border-left:1px solid var(--border);box-shadow:-20px 0 60px rgba(0,0,0,.5);overflow-y:auto;padding:24px 24px 60px;z-index:51;transform:translateX(100%);transition:transform .18s ease;}
@@ -52,6 +55,7 @@
   .dh{display:flex;align-items:flex-start;gap:12px;margin-bottom:4px;}
   .dh h3{margin:0;font-size:18px;font-weight:800;}
   .dh .x{margin-left:auto;background:var(--panel2);border:1px solid var(--border);color:var(--dim);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;}
+  .actionbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 2px;align-items:center;}
   .signal{border-radius:12px;padding:13px 15px;margin:14px 0 6px;font-size:13px;line-height:1.5;border:1px solid;}
   .signal.hot{background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.4);}
   .signal.warn{background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.35);color:#FDE9B0;}
@@ -66,7 +70,6 @@
   .plist{font-size:12.5px;}
   .plist .pr{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(35,43,76,.5);}
   .plist .pr:last-child{border-bottom:none;}
-  .chk{font-weight:800;}.chk.y{color:var(--green);}.chk.n{color:var(--muted);}
 </style></head>
 <body>
 <div class="wrap">
@@ -115,16 +118,16 @@ function demoData(){ var D=Date.now(); return { ok:true, generatedAt:D, priceLic
   kpis:{activeLicenses:17,totalLicenseCustomers:21,mrr:52480,rev30:389700,subsCount:23},
   setupSales:{guided:6,concierge:2,managed:4},
   licenses:[
-   {id:"cus_Qa1",email:"mia@ridgelinehvac.com",name:"Ridgeline HVAC",created:D-41*864e5,status:"active",tier:"founders",mrr:2499,periodEnd:D+18*864e5,devices:1,
+   {id:"cus_Qa1",email:"mia@ridgelinehvac.com",name:"Ridgeline HVAC",created:D-41*864e5,status:"active",adminStatus:"",tier:"founders",mrr:2499,periodEnd:D+18*864e5,devices:1,
      usage:{v:1,fs:D-41*864e5,ls:D-2*36e5,tour:1,jobs:38,live:1,conn:4,cver:1,contacts:26,ind:"Home services",size:"Solo"},
      purchases:[{amount:9900,created:D-41*864e5,label:"Founder's Edition",refunded:0},{amount:19900,created:D-30*864e5,label:"Guided Setup $199",refunded:0}]},
-   {id:"cus_Qa2",email:"owner@brightclean.co",name:"Bright Clean Co",created:D-2*864e5,status:"trialing",tier:"standard",mrr:2499,periodEnd:D+1*864e5,devices:2,
+   {id:"cus_Qa2",email:"owner@brightclean.co",name:"Bright Clean Co",created:D-2*864e5,status:"trialing",adminStatus:"",tier:"standard",mrr:2499,periodEnd:D+1*864e5,devices:2,
      usage:{v:1,fs:D-2*864e5,ls:D-20*36e5,tour:0,jobs:1,live:0,conn:0,cver:0,contacts:2,ind:"Cleaning",size:"2-5"},
      purchases:[{amount:19700,created:D-2*864e5,label:"SMB Suite",refunded:0}]},
-   {id:"cus_Qa3",email:"j@northstarhome.io",name:"Northstar Home Services",created:D-27*864e5,status:"active",tier:"founders",mrr:2499,periodEnd:D+3*864e5,devices:2,
+   {id:"cus_Qa3",email:"j@northstarhome.io",name:"Northstar Home Services",created:D-27*864e5,status:"active",adminStatus:"",tier:"founders",mrr:2499,periodEnd:D+3*864e5,devices:2,
      usage:{v:1,fs:D-27*864e5,ls:D-5*36e5,tour:1,jobs:52,live:0,conn:5,cver:0,contacts:63,ind:"Home services",size:"6-10"},
      purchases:[{amount:9900,created:D-27*864e5,label:"Founder's Edition",refunded:0},{amount:75000,created:D-6*36e5,label:"Concierge Setup $750",refunded:0}]},
-   {id:"cus_Qa4",email:"deb@coastalplumb.com",name:"Coastal Plumbing",created:D-12*864e5,status:"past_due",tier:"standard",mrr:2499,periodEnd:D-3*864e5,devices:3,
+   {id:"cus_Qa4",email:"deb@coastalplumb.com",name:"Coastal Plumbing",created:D-12*864e5,status:"active",adminStatus:"suspended",tier:"standard",mrr:2499,periodEnd:D+9*864e5,devices:3,
      usage:{v:1,fs:D-12*864e5,ls:D-9*864e5,tour:1,jobs:7,live:0,conn:2,cver:0,contacts:11,ind:"Plumbing",size:"Solo"},
      purchases:[{amount:19700,created:D-12*864e5,label:"SMB Suite",refunded:0}]}
   ],
@@ -147,10 +150,23 @@ async function load(){
   }catch(e){ document.getElementById("body").innerHTML='<div class="note">Could not load: '+esc(e)+'</div>'; }
 }
 
+async function doAction(id, action){
+  var msg = action==="suspend" ? "Suspend this license?\n\nThe customer loses access immediately (billing continues) until you reactivate."
+          : action==="revoke" ? "REVOKE this license?\n\nAccess is blocked AND the license subscription is cancelled (billing stops). Not auto-reversible."
+          : "Reactivate this license? The customer regains access.";
+  if(!confirm(msg)) return;
+  if(DEMO){ alert("Demo mode — no change made. The live dashboard performs the "+action+"."); return; }
+  try{
+    var r=await fetch("/api/admin-action",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token:tok(),id:id,action:action})});
+    var j=await r.json();
+    if(j.error){ alert("Failed: "+j.error); return; }
+    closeDetail(); load();
+  }catch(e){ alert("Failed: "+e); }
+}
+
 function upsell(l){
   var u=l.usage||{}; var d=daysSince(l.created); var jobs=u.jobs||0; var tour=u.tour===1;
   var hasConcierge=(l.purchases||[]).some(function(p){return p.amount===75000;});
-  var hasGuided=(l.purchases||[]).some(function(p){return p.amount===19900;});
   if(jobs>=20 && !hasConcierge) return {cls:"hot", t:"<b>Power user.</b> "+jobs+" automations run and no done-for-you yet — pitch <b>Sophia Presence (voice)</b> or Concierge Setup."};
   if((u.contacts||0)>=15 && u.live===0) return {cls:"hot", t:"<b>Lots of leads, automation still off.</b> "+(u.contacts||0)+" contacts but live mode off — offer Concierge to switch it on for them."};
   if(!tour && d!=null && d>=2) return {cls:"warn", t:"<b>Stalled onboarding.</b> Signed up "+d+"d ago and hasn't finished the guided tour — nudge with Guided Setup ($199)."};
@@ -159,15 +175,25 @@ function upsell(l){
   return {cls:"ok", t:"<b>Healthy.</b> Engaged and current — keep nurturing; watch for a Presence trigger."};
 }
 
+function actionBar(l){
+  var as=(l.adminStatus||"").toLowerCase();
+  var b='<div class="actionbar">';
+  if(as==="suspended"){ b+='<span class="pill suspended">Suspended</span><button class="btn primary" onclick="doAction(\''+esc(l.id)+'\',\'reactivate\')">Reactivate</button><button class="btn danger" onclick="doAction(\''+esc(l.id)+'\',\'revoke\')">Revoke</button>'; }
+  else if(as==="revoked"){ b+='<span class="pill revoked">Revoked</span><button class="btn" onclick="doAction(\''+esc(l.id)+'\',\'reactivate\')">Clear flag</button>'; }
+  else { b+='<button class="btn warn" onclick="doAction(\''+esc(l.id)+'\',\'suspend\')">Suspend</button><button class="btn danger" onclick="doAction(\''+esc(l.id)+'\',\'revoke\')">Revoke</button>'; }
+  b+='</div>';
+  return b;
+}
+
 function openDetail(i){
   var l=LICENSES[i]; if(!l) return; var u=l.usage||{}; var cur="usd";
-  var d=daysSince(l.created); var last=u.ls?daysSince(u.ls):null;
-  var sig=upsell(l);
-  var chk=function(b){return '<span class="chk '+(b?"y":"n")+'">'+(b?"Yes":"No")+'</span>';};
+  var d=daysSince(l.created); var last=u.ls?daysSince(u.ls):null; var sig=upsell(l);
+  var as=(l.adminStatus||"").toLowerCase();
   var h='<div class="dh"><div class="mark">'+esc((l.name||l.email||"?").slice(0,1).toUpperCase())+'</div>'+
     '<div><h3>'+esc(l.name||l.email||"Customer")+'</h3><div class="mono">'+esc(l.id||"")+'</div></div>'+
     '<button class="x" onclick="closeDetail()">&times;</button></div>'+
-    '<div style="font-size:12.5px;color:var(--dim);">'+esc(l.email||"")+' &middot; <span class="pill '+esc(l.status)+'">'+esc(l.status)+'</span> &middot; '+esc(l.tier||"")+'</div>'+
+    '<div style="font-size:12.5px;color:var(--dim);">'+esc(l.email||"")+' &middot; <span class="pill '+esc(l.status)+'">'+esc(l.status)+'</span>'+(as?(' <span class="pill '+as+'">'+as+'</span>'):'')+' &middot; '+esc(l.tier||"")+'</div>'+
+    actionBar(l)+
     '<div class="signal '+sig.cls+'">'+sig.t+'</div>'+
     '<div class="grid2">'+
       stat("Signed up", fmtDate(l.created)+(d!=null?' <small>('+d+'d ago)</small>':'')) +
@@ -211,10 +237,10 @@ function render(d){
   html+='<h2>Setup services sold (recent)</h2><div class="setup">'+
     setupCard("Guided · $199", s.guided||0)+ setupCard("Concierge · $750", s.concierge||0)+ setupCard("Managed · $79/mo", s.managed||0)+
   '</div>';
-  html+='<h2>Clients — click a row for the full record</h2><div class="card"><table><thead><tr><th>Client</th><th>Signed up</th><th>Tier</th><th>Status</th><th>Jobs</th><th>Tour</th><th>Devices</th></tr></thead><tbody class="clickable">';
+  html+='<h2>Clients — click a row for the full record &amp; actions</h2><div class="card"><table><thead><tr><th>Client</th><th>Signed up</th><th>Tier</th><th>Status</th><th>Jobs</th><th>Tour</th><th>Devices</th></tr></thead><tbody class="clickable">';
   LICENSES.forEach(function(l,i){
-    var u=l.usage||{}, dc=l.devices||0, cls=dc>=3?"bad":(dc>=2?"warn":"");
-    html+='<tr onclick="openDetail('+i+')"><td><b>'+esc(l.name||l.email||"—")+'</b><br><span class="mono">'+esc(l.id||"")+'</span></td><td>'+fmtDate(l.created)+'</td><td>'+esc(l.tier||"")+'</td><td><span class="pill '+esc(l.status)+'">'+esc(l.status)+'</span></td><td>'+(u.jobs!=null?u.jobs:'—')+'</td><td>'+(u.tour!=null?(u.tour?'✓':'—'):'—')+'</td><td class="dev '+cls+'">'+dc+' / 2'+(dc>=3?' ⚠':'')+'</td></tr>';
+    var u=l.usage||{}, dc=l.devices||0, cls=dc>=3?"bad":(dc>=2?"warn":""); var as=(l.adminStatus||"").toLowerCase();
+    html+='<tr onclick="openDetail('+i+')"><td><b>'+esc(l.name||l.email||"—")+'</b><br><span class="mono">'+esc(l.id||"")+'</span></td><td>'+fmtDate(l.created)+'</td><td>'+esc(l.tier||"")+'</td><td><span class="pill '+esc(l.status)+'">'+esc(l.status)+'</span>'+(as?(' <span class="pill '+as+'">'+as+'</span>'):'')+'</td><td>'+(u.jobs!=null?u.jobs:'—')+'</td><td>'+(u.tour!=null?(u.tour?'✓':'—'):'—')+'</td><td class="dev '+cls+'">'+dc+' / 2'+(dc>=3?' ⚠':'')+'</td></tr>';
   });
   if(!LICENSES.length) html+='<tr><td colspan="7" style="color:var(--muted);">No license subscriptions yet.</td></tr>';
   html+='</tbody></table></div>';
