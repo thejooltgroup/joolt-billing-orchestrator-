@@ -3370,7 +3370,7 @@ document.getElementById("genericModal").addEventListener("click", e => { if (e.t
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="btn primary sm" onclick="Actions.connBuyGuided()">Guided &mdash; $199</button><button class="btn sm" onclick="Actions.connBookSetup()">Concierge &mdash; $750</button></div>'
   }); } };
 
-  window.connGateBody=function(){ return '<p style="color:var(--text-dim);font-size:13px;">Live automation runs on your <b style="color:#FFF;">real tools</b>, so Sophia needs them connected and verified first &mdash; and a browser can&rsquo;t confirm a local connection. Pick a setup level and we switch it on live with you on your onboarding call.</p>'+connTiers()+'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn ghost" onclick="Actions.openIntegrations()">Open Integrations</button><button class="btn ghost" onclick="Actions.connMarkVerified()">Advanced: I&rsquo;ve set it up</button></div>'; };
+  window.connGateBody=function(){ return '<p style="color:var(--text-dim);font-size:13px;">Live automation runs on your <b style="color:#FFF;">real tools</b>, so Sophia needs them connected and verified first &mdash; and a browser can&rsquo;t confirm a local connection. Pick a setup level and we switch it on live with you on your onboarding call.</p>'+connTiers()+'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn ghost" onclick="Actions.openIntegrations()">Open Integrations</button><button class="btn ghost" onclick="Actions.goLiveCheck()">Run Go-Live Check</button></div>'; };
 
   pages.integrations=function(){
     var c=Store.state.settings.connectors||{}, sel=connSel(), verified=!!Store.state.settings.connVerified;
@@ -3387,7 +3387,7 @@ document.getElementById("genericModal").addEventListener("click", e => { if (e.t
     });
     if(sel.length){
       var names=sel.map(function(k){return INTEGRATIONS[k].name;}).join(", ");
-      html+='<div style="margin-top:22px;padding:18px 20px;border-radius:12px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.05);"><b style="font-size:15px;">Your stack &mdash; '+sel.length+' tool'+(sel.length>1?'s':'')+'</b><p style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin:6px 0 12px;">'+names+'. Pick a setup level above &mdash; we install each one, sign you in, and verify it&rsquo;s talking to Sophia on your onboarding call, then switch on live automation with you.</p>'+(verified?'<span class="badge green">Verified &#10003;</span>':'<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn primary sm" onclick="Actions.connBuyGuided()">Guided &mdash; $199 &rarr;</button><button class="btn sm" onclick="Actions.connBookSetup()">Concierge &mdash; $750 &rarr;</button><button class="btn ghost sm" onclick="Actions.connMarkVerified()">Advanced: I&rsquo;ve set it up myself</button></div>')+'</div>';
+      html+='<div style="margin-top:22px;padding:18px 20px;border-radius:12px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.05);"><b style="font-size:15px;">Your stack &mdash; '+sel.length+' tool'+(sel.length>1?'s':'')+'</b><p style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin:6px 0 12px;">'+names+'. Pick a setup level above &mdash; we install each one, sign you in, and verify it&rsquo;s talking to Sophia on your onboarding call, then switch on live automation with you.</p>'+(verified?'<span class="badge green">Verified &#10003;</span>':'<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn primary sm" onclick="Actions.connBuyGuided()">Guided &mdash; $199 &rarr;</button><button class="btn sm" onclick="Actions.connBookSetup()">Concierge &mdash; $750 &rarr;</button><button class="btn ghost sm" onclick="Actions.goLiveCheck()">Run Go-Live Check</button></div>')+'</div>';
     }
     return html;
   };
@@ -3408,6 +3408,41 @@ document.getElementById("genericModal").addEventListener("click", e => { if (e.t
       return _origToggle();
     };
   }
+})();
+/* ===== Go-Live Check — see one real job work before flipping live ===== */
+(function(){
+  if (typeof Actions === "undefined" || typeof Modal === "undefined" || typeof Store === "undefined") return;
+  function toolList(){ var c=(Store.state.settings.connectors)||{}; return Object.keys(c).filter(function(k){return c[k];}); }
+  function step(n,t,d){ return '<div style="display:flex;gap:11px;align-items:flex-start;margin:2px 0;"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#22D3EE);color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center;flex-shrink:0;">'+n+'</div><div><div style="font-weight:700;font-size:13px;color:#FFF;">'+t+'</div><div style="font-size:12px;color:var(--text-dim);line-height:1.4;">'+d+'</div></div></div>'; }
+  Actions.goLiveCheck = function(){
+    var tools = toolList();
+    var toolTxt = tools.length ? tools.map(function(k){return k.charAt(0).toUpperCase()+k.slice(1);}).join(", ") : "";
+    var body = ''
+      + '<div style="font-size:13px;color:var(--text-dim);line-height:1.55;margin-bottom:14px;">Three quick steps so your <b style="color:#FFF;">first real job is a win</b> &mdash; not a surprise. We watch one job work, then switch on live automation.</div>'
+      + '<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">'
+      +   step(1,"Your tools are connected", tools.length ? ("You use: "+toolTxt+".") : "Pick your tools in Integrations first, then come back.")
+      +   step(2,"Run one real test","We run a single job end-to-end so you can see it actually happen.")
+      +   step(3,"Go live","Once you&rsquo;ve seen it work the way you want, we turn on live automation.")
+      + '</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      +   (tools.length ? '<button class="btn primary" onclick="Actions.goLiveRunTest()">Run one real test &rarr;</button>' : '<button class="btn primary" onclick="Actions.openIntegrations()">Pick my tools first</button>')
+      +   '<button class="btn ghost" onclick="Modal.close()">Later</button>'
+      + '</div>';
+    Modal.info({ title:"Go-Live Check", body:body });
+  };
+  Actions.goLiveRunTest = function(){
+    if (Modal.close) Modal.close();
+    try { if (typeof Actions.runNewJobFlow === "function") Actions.runNewJobFlow(); } catch(e){}
+    setTimeout(function(){
+      Modal.info({ title:"Did the test work?", body:
+        '<div style="font-size:13px;color:var(--text-dim);line-height:1.55;margin-bottom:14px;">Did Sophia do it the way you wanted &mdash; right info, right tone, right action? Only go live once you&rsquo;re happy with it.</div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn primary" onclick="Actions.goLiveConfirm()">Yes &mdash; it worked, go live</button><button class="btn ghost" onclick="Modal.close()">Not yet &mdash; keep tuning</button></div>' });
+    }, 500);
+  };
+  Actions.goLiveConfirm = function(){
+    if (typeof Actions.connMarkVerified === "function") { Actions.connMarkVerified(); }
+    else { Store.update(function(s){ s.settings.connVerified = true; }); if(typeof toast==="function") toast("You&rsquo;re live — first job confirmed", "success"); if(Modal.close) Modal.close(); }
+  };
 })();
 </script>
 </body>
