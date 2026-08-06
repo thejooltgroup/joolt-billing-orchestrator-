@@ -2997,6 +2997,9 @@ const LICENSE_DEFAULT_ENDPOINT = "https://smb.joolt.io"; // change once Worker i
 const LICENSE_GRACE_MS = 7 * 24 * 3600 * 1000;
 const LICENSE_RECHECK_MS = 6 * 3600 * 1000;
 
+/* Stable per-device id so a license can be locked to a limited number of machines. */
+function jooltDeviceId(){ try{ var k="joolt_device_id"; var v=localStorage.getItem(k); if(!v){ v=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10)); localStorage.setItem(k,v);} return v; }catch(e){ return "nodev"; } }
+
 const License = {
   key: null,
   endpoint: null,
@@ -3038,7 +3041,7 @@ const License = {
     if (!this.key) { this.updateBanner(); return; }
     if (!opts.force && this.state && this.state.lastVerified && (Date.now() - this.state.lastVerified < LICENSE_RECHECK_MS)) return;
     try {
-      const url = this.endpoint.replace(/\/$/,"") + "/license/verify?key=" + encodeURIComponent(this.key);
+      const url = this.endpoint.replace(/\/$/,"") + "/license/verify?key=" + encodeURIComponent(this.key) + "&device=" + encodeURIComponent(jooltDeviceId());
       const res = await fetch(url, { method: "GET" });
       if (!res.ok) throw new Error("http_" + res.status);
       const data = await res.json();
