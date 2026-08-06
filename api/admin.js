@@ -65,7 +65,6 @@ export default async function handler(request) {
     const setup = { guided: 0, concierge: 0, managed: 0 };
     charges.forEach(c => { const a = c.amount; if (a === 19900) setup.guided++; else if (a === 75000) setup.concierge++; else if (a === 7900) setup.managed++; });
 
-    // per-customer purchase history (from charges), keyed by customer id + email
     const purchasesByCust = {}, purchasesByEmail = {};
     const label = a => a === 19900 ? "Guided Setup $199" : a === 75000 ? "Concierge Setup $750" : a === 7900 ? "Managed $79/mo" : ("$" + (a / 100).toFixed(2));
     charges.forEach(c => {
@@ -92,6 +91,7 @@ export default async function handler(request) {
         name: cust ? cust.name : null,
         created: cust && cust.created ? cust.created * 1000 : (s.created ? s.created * 1000 : null),
         status: s.status,
+        adminStatus: (meta.joolt_status || ""),
         tier: (s.metadata && s.metadata.tier) || "standard",
         mrr: Math.round(monthly(s)),
         periodEnd: s.current_period_end ? s.current_period_end * 1000 : (s.trial_end ? s.trial_end * 1000 : null),
