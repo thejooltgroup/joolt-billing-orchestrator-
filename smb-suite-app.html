@@ -3193,11 +3193,18 @@ const UPSELLS = {
   marketing: 'Posts here are drafts you approve. <b style="color:#FFF;">Sophia SMB Pro</b> plans, writes, and publishes your whole calendar &mdash; hands off.',
   automations: 'New Job Flow is one automation. <b style="color:#FFF;">Sophia SMB Pro</b> builds unlimited custom flows across every module &mdash; with a dedicated JOOLT partner.'
 };
+// Upsell banners only show to PAID buyers (Stripe founders/standard tier).
+// Hidden during demo (no license), pilot/beta, and master QA — so trial users
+// exploring the app never feel upsold.
+function shouldShowUpsell() {
+  const s = License.state;
+  return !!(s && s.valid && s.tier !== "master" && s.tier !== "pilot");
+}
 (function () {
   Object.keys(UPSELLS).forEach(k => {
     const orig = pages[k];
     if (!orig) return;
-    pages[k] = () => upsellBanner(UPSELLS[k]) + orig();
+    pages[k] = () => (shouldShowUpsell() ? upsellBanner(UPSELLS[k]) : "") + orig();
   });
 })();
 
