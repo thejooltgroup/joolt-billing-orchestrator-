@@ -102,6 +102,7 @@
       <a class="btn" href="https://smb.joolt.io/scorecard.html" target="_blank" rel="noopener">🔎 Public Scorecard</a>
       <span class="sub" style="margin:0 0 0 auto;">Passphrase: <span class="mono">joolt-setup-2026</span></span>
     </div>
+    <div id="resellers"></div>
     <div id="body"></div>
     <div class="foot">Reads live from Stripe · usage is counts &amp; flags only, from the app heartbeat · keep this link private · &copy; 2026 The JOOLT Group</div>
   </div>
@@ -156,7 +157,7 @@ async function load(){
     if(DEMO){ data=demoData(); }
     else{ var r=await fetch("/api/admin?token="+encodeURIComponent(tok()),{headers:{"x-admin-token":tok()}}); data=await r.json(); }
     if(data.error==="unauthorized"){ logout(); document.getElementById("gateErr").textContent="Invalid token."; return; }
-    render(data);
+    render(data); loadResellers();
   }catch(e){ document.getElementById("body").innerHTML='<div class="note">Could not load: '+esc(e)+'</div>'; }
 }
 
@@ -262,6 +263,74 @@ function render(d){
 }
 function kpi(l,v,dd,grad){ return '<div class="kpi"><div class="l">'+l+'</div><div class="v'+(grad?' grad':'')+'">'+v+'</div><div class="d">'+(dd||"")+'</div></div>'; }
 function setupCard(l,v){ return '<div class="s"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>'; }
+
+/* ---------- Resellers & white-label ---------- */
+var RES_LINKS = {
+  guided: "https://buy.stripe.com/7sYaEQc2l8lHadCafxcbC12",
+  concierge: "https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L",
+  managed: "https://buy.stripe.com/9B6eV6eat6dz99yfzRcbC13"
+};
+function resDemo(){ return { ok:true, resellers:[
+  {code:"glowpartners", name:"Glow Partners", commission:25, grossCents:174800, salesCount:3, commissionCents:43700, brand:{name:"Glow Partners", poweredBy:true}},
+  {code:"atlaesthetics", name:"ATL Aesthetics Group", commission:30, grossCents:75000, salesCount:1, commissionCents:22500, brand:{name:"ATL Aesthetics", poweredBy:false}}
+]}; }
+function money2(c){ return "$"+((c||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function copyText(t){ if(navigator.clipboard) navigator.clipboard.writeText(t); var m=document.getElementById("r_msg"); if(m){ m.textContent="Copied ✓"; setTimeout(function(){m.textContent="";},1200);} }
+function val(id){ var e=document.getElementById(id); return e?e.value.trim():""; }
+function finp(id,ph,type,v){ return '<div><label style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">'+ph+'</label><input id="'+id+'" type="'+type+'" value="'+v+'" placeholder="'+ph+'" style="width:100%;min-width:0;"></div>'; }
+async function loadResellers(){
+  var host=document.getElementById("resellers"); if(!host) return;
+  try{
+    var data;
+    if(DEMO){ data=resDemo(); }
+    else{ var r=await fetch("/api/reseller?token="+encodeURIComponent(tok()),{headers:{"x-admin-token":tok()}}); data=await r.json(); }
+    if(data.error){ host.innerHTML='<h2>Resellers</h2><div class="note">'+(data.error==="unauthorized"?"Unauthorized.":esc(data.error))+'</div>'; return; }
+    renderResellers(data.resellers||[]);
+  }catch(e){ host.innerHTML='<h2>Resellers</h2><div class="note">Could not load resellers: '+esc(e)+'</div>'; }
+}
+function renderResellers(list){
+  var host=document.getElementById("resellers");
+  var owed=list.reduce(function(n,r){return n+(r.commissionCents||0);},0);
+  var h='<h2>Resellers &amp; commissions'+(owed?(' &middot; '+money2(owed)+' owed'):'')+'</h2>';
+  h+='<div class="card" style="padding:16px;margin-bottom:12px;"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">'+
+      finp("r_name","Reseller / agency name","text","")+
+      finp("r_code","Referral code","text","")+
+      finp("r_comm","Commission %","number","25")+
+      finp("r_brand","White-label brand name","text","")+
+      finp("r_logo","Logo letters (1-2)","text","")+
+      finp("r_primary","Brand primary color","text","#7C3AED")+
+      finp("r_accent","Brand accent color","text","#22D3EE")+
+      finp("r_support","Support email (optional)","text","")+
+    '</div><label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--dim);"><input type="checkbox" id="r_powered"> Show &ldquo;Powered by [brand]&rdquo; badge on their skin</label>'+
+    '<div style="margin-top:12px;"><button class="btn primary" onclick="createReseller()">Save reseller</button> <span id="r_msg" class="sub" style="margin:0 0 0 8px;"></span></div></div>';
+  if(!list.length){ h+='<div class="card"><table><tbody><tr><td style="color:var(--muted);padding:14px;">No resellers yet. Add one above to generate their referral + white-label links.</td></tr></tbody></table></div>'; }
+  else {
+    h+='<div class="card"><table><thead><tr><th>Reseller</th><th>Code</th><th>Cut</th><th>Sales</th><th>Gross</th><th>Owed</th><th>Links (click to copy)</th></tr></thead><tbody>';
+    list.forEach(function(r){
+      var app="https://smb.joolt.io/?ref="+r.code, sc="https://smb.joolt.io/scorecard.html?ref="+r.code;
+      var g=RES_LINKS.guided+"?client_reference_id="+r.code, c=RES_LINKS.concierge+"?client_reference_id="+r.code, m=RES_LINKS.managed+"?client_reference_id="+r.code;
+      function lk(u,t){ return '<button class="btn" style="padding:5px 9px;font-size:11px;margin:2px 2px 0 0;" onclick="copyText(\''+u+'\')">'+t+'</button>'; }
+      var links=lk(app,"Skinned app")+lk(sc,"Skinned scorecard")+lk(g,"Guided $199")+lk(c,"Concierge $750")+lk(m,"Managed $79");
+      h+='<tr><td><b>'+esc(r.name)+'</b>'+(r.brand&&r.brand.poweredBy?' <span class="pill trialing">skin</span>':'')+'</td><td><span class="mono">'+esc(r.code)+'</span></td><td>'+r.commission+'%</td><td>'+(r.salesCount||0)+'</td><td>'+money2(r.grossCents)+'</td><td><b>'+money2(r.commissionCents)+'</b></td><td>'+links+'</td></tr>';
+    });
+    h+='</tbody></table></div><div class="sub" style="margin-top:8px;">Reseller links tag every checkout with their code (<span class="mono">client_reference_id</span>) so sales attribute automatically. Skinned links reskin the app + scorecard to the reseller\'s brand.</div>';
+  }
+  host.innerHTML=h;
+}
+async function createReseller(){
+  var name=val("r_name"), code=val("r_code")||name;
+  if(!name){ document.getElementById("r_msg").textContent="Name is required."; return; }
+  var payload={ name:name, code:code, commission:val("r_comm")||"25", brand:{ name:val("r_brand")||name, logo:val("r_logo"), primary:val("r_primary"), accent:val("r_accent"), support:val("r_support"), poweredBy:document.getElementById("r_powered").checked } };
+  document.getElementById("r_msg").textContent="Saving…";
+  if(DEMO){ document.getElementById("r_msg").textContent="Demo mode — the live dashboard saves to Stripe."; return; }
+  try{
+    var r=await fetch("/api/reseller?token="+encodeURIComponent(tok()),{method:"POST",headers:{"content-type":"application/json","x-admin-token":tok()},body:JSON.stringify(payload)});
+    var j=await r.json();
+    if(j.error){ document.getElementById("r_msg").textContent="Failed: "+j.error; return; }
+    document.getElementById("r_msg").textContent="Saved ✓ ("+j.code+") — may take a few seconds to appear.";
+    setTimeout(loadResellers, 2500);
+  }catch(e){ document.getElementById("r_msg").textContent="Failed: "+e; }
+}
 
 if(DEMO){ show(true); load(); }
 else if(tok()){ load(); }
