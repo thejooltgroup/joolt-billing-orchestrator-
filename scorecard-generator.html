@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>JOOLT Scorecard Generator — Internal</title>
+<style>
+  :root{ --bg:#07091A; --panel:#111827; --panel2:#151C2C; --border:#1F2A3D; --text:#E5E9F0; --dim:#8B95AE; --p:#7C3AED; --c:#22D3EE; }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(60% 40% at 85% 0%,rgba(124,58,237,.18),transparent 60%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;line-height:1.5;}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 22px 80px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:6px;}
+  .tile{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--p),var(--c));display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff;}
+  h1{font-size:20px;margin:0;font-weight:800}
+  .sub{color:var(--dim);font-size:12.5px;margin:1px 0 0}
+  .flag{display:inline-block;margin:12px 0 18px;padding:8px 13px;border-radius:8px;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.35);color:#FBBF24;font-size:12px;font-weight:600;}
+  .cols{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;}
+  label{display:block;font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);margin:14px 0 6px;}
+  label:first-child{margin-top:0}
+  input{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:9px;color:#fff;padding:10px 12px;font-size:14px;}
+  .num{font-size:12px;color:var(--dim);margin-top:4px;}
+  .big{margin-top:16px;background:var(--panel2);border:1px solid var(--border);border-radius:11px;padding:14px;text-align:center;}
+  .big .k{color:var(--dim);font-size:10.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;}
+  .big .n{font-size:30px;font-weight:900;color:#FBBF24;margin-top:3px;letter-spacing:-.01em;}
+  .bar{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px;}
+  .btn{border:0;border-radius:9px;padding:11px 15px;font-size:12.5px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block;text-align:center;}
+  .btn.primary{background:linear-gradient(135deg,var(--p),var(--c));color:#fff;}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--border);color:var(--text);}
+  .linkbox{margin-top:12px;background:#0d1326;border:1px solid var(--border);border-left:3px solid var(--p);border-radius:9px;padding:11px 12px;font-size:12px;color:var(--c);word-break:break-all;font-family:ui-monospace,Menlo,monospace;}
+  .previewwrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px;}
+  .previewwrap .h{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin:2px 4px 10px;}
+  iframe{width:100%;height:720px;border:0;border-radius:10px;background:#0b0e1c;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#12b981;color:#04231a;font-weight:800;font-size:13px;padding:10px 16px;border-radius:9px;opacity:0;transition:.25s;pointer-events:none;}
+  .toast.on{opacity:1}
+  /* gate */
+  #gate{position:fixed;inset:0;z-index:50;background:radial-gradient(60% 40% at 85% 0%,rgba(124,58,237,.18),transparent 60%),var(--bg);display:grid;place-items:center;}
+  #gate .g{width:min(92vw,360px);text-align:center;padding:30px 26px;border:1px solid var(--border);border-radius:16px;background:var(--panel);}
+  #gate input{text-align:center;letter-spacing:.5px}
+  #gate button{width:100%;margin-top:12px;border:0;border-radius:9px;padding:11px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--p),var(--c));}
+  #gerr{color:#F87171;font-size:12px;margin-top:10px;min-height:14px}
+  @media(max-width:820px){ .cols{grid-template-columns:1fr} iframe{height:560px} }
+</style>
+</head>
+<body>
+<div id="gate"><div class="g">
+  <div class="tile" style="margin:0 auto 12px">S</div>
+  <h1 style="font-size:16px">JOOLT Setup Console</h1>
+  <p class="sub" style="margin:2px 0 16px">Internal rep tool. Enter the team passphrase.</p>
+  <input id="gpass" type="password" placeholder="Passphrase" autocomplete="off" onkeydown="if(event.key==='Enter')gateGo()">
+  <button onclick="gateGo()">Enter</button>
+  <div id="gerr"></div>
+</div></div>
+
+<div class="wrap" id="app" style="display:none">
+  <div class="brand"><div class="tile">S</div><div><h1>Scorecard Generator</h1><div class="sub">Make a personalized After-Hours Leak Report for one med spa</div></div></div>
+  <div class="flag">🔒 Internal — generate, then send the link or the downloaded image in your DM. Nothing is uploaded.</div>
+
+  <div class="cols">
+    <div class="card">
+      <label>Spa / business name</label>
+      <input id="spa" value="Radiance Medspa Atlanta" oninput="build()">
+      <label>Area</label>
+      <input id="area" value="Vinings, GA" oninput="build()">
+      <label>After-hours inquiries per week</label>
+      <input id="inq" type="number" value="15" min="1" oninput="build()">
+      <div class="num">DMs + missed calls + form fills after 6pm / weekends</div>
+      <label>Average ticket ($)</label>
+      <input id="val" type="number" value="600" min="50" step="25" oninput="build()">
+      <label>% answered within 5 min today</label>
+      <input id="fast" type="number" value="20" min="0" max="100" step="5" oninput="build()">
+
+      <div class="big"><div class="k">Their leak number</div><div class="n" id="leak">$0</div></div>
+
+      <div class="bar">
+        <button class="btn primary" onclick="copyLink()">Copy report link</button>
+        <a class="btn ghost" id="openBtn" href="#" target="_blank" rel="noopener">Open report (download image/PDF)</a>
+      </div>
+      <div class="linkbox" id="link">…</div>
+    </div>
+
+    <div class="previewwrap">
+      <div class="h">Live preview — this is exactly what they'll see</div>
+      <iframe id="frame" title="preview"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Link copied ✓</div>
+
+<script>
+  var GATE_PASS = "joolt-setup-2026";  /* same passphrase as the Connector Generator */
+  function gateGo(){
+    var v=(document.getElementById('gpass').value||'').trim();
+    if(v===GATE_PASS){ document.getElementById('gate').style.display='none'; document.getElementById('app').style.display=''; build(); }
+    else document.getElementById('gerr').textContent='Incorrect passphrase.';
+  }
+  document.getElementById('gpass').focus();
+
+  var RECAPTURE = 0.30;
+  function reportURL(){
+    var p = new URLSearchParams({
+      spa: document.getElementById('spa').value || 'Your Med Spa',
+      area: document.getElementById('area').value || 'Atlanta, GA',
+      inq: document.getElementById('inq').value || '15',
+      val: document.getElementById('val').value || '600',
+      fast: document.getElementById('fast').value || '20'
+    });
+    // resolves to smb.joolt.io/scorecard-report.html once deployed; works locally too
+    return new URL('scorecard-report.html', location.href).href + '?' + p.toString();
+  }
+  function build(){
+    var inq=+document.getElementById('inq').value||0, val=+document.getElementById('val').value||0, fast=+document.getElementById('fast').value||0;
+    var perMo = inq*(1-fast/100)*RECAPTURE*4.3*val;
+    document.getElementById('leak').textContent = '$' + Math.round(perMo).toLocaleString('en-US') + '/mo';
+    var url = reportURL();
+    document.getElementById('link').textContent = url;
+    document.getElementById('openBtn').href = url;
+    document.getElementById('frame').src = url;
+  }
+  function copyLink(){
+    var url = reportURL();
+    if(navigator.clipboard) navigator.clipboard.writeText(url);
+    var t=document.getElementById('toast'); t.classList.add('on'); setTimeout(function(){t.classList.remove('on');},1400);
+  }
+</script>
+</body>
+</html>

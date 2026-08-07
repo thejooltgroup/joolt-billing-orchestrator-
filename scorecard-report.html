@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>After-Hours Leak Report — JOOLT</title>
+<style>
+  :root{ --ink:#0F1424; --dim:#5A6480; --line:#E4E7F1; --line2:#F3F5FA; --p:#7C3AED; --c:#22D3EE; --leak:#E23B4E; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#0b0e1c;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  .stage{padding:26px 16px 70px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .btn{border:0;border-radius:10px;padding:12px 18px;font-size:13.5px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block;}
+  .btn.primary{background:linear-gradient(135deg,var(--p),var(--c));color:#fff;}
+  .btn.ghost{background:#151c2c;border:1px solid #24304a;color:#e5e9f0;}
+  /* ---- the report page (matches the branded PDF frame) ---- */
+  .page{width:820px;max-width:100%;background:#fff;border:1.5px solid var(--line);border-radius:18px;position:relative;padding:46px 48px 40px;box-shadow:0 24px 70px rgba(0,0,0,.45);}
+  .page::after{content:"";position:absolute;inset:7px;border:1px solid var(--line2);border-radius:12px;pointer-events:none;}
+  .corner{position:absolute;width:46px;height:46px;}
+  .corner svg{width:100%;height:100%;display:block}
+  .tl{top:8px;left:8px}.tr{top:8px;right:8px}.bl{bottom:8px;left:8px}.br{bottom:8px;right:8px}
+  .head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ECEEF5;padding-bottom:16px;position:relative;z-index:1;}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .tile{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--p),var(--c));display:grid;place-items:center;font-weight:800;font-size:21px;color:#fff;}
+  .brand b{font-size:15px;display:block;line-height:1.1}
+  .brand span{color:var(--dim);font-size:11.5px}
+  .doclabel{text-align:right;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim);}
+  .prep{margin:22px 0 4px;font-size:12.5px;color:var(--dim);font-weight:700;letter-spacing:.4px;text-transform:uppercase;position:relative;z-index:1;}
+  h1{font-size:30px;line-height:1.12;margin:2px 0 2px;font-weight:800;letter-spacing:-.02em;position:relative;z-index:1;}
+  .sub{color:var(--dim);font-size:14.5px;margin:0 0 20px;position:relative;z-index:1;}
+  .leakbox{border:1px solid #F0D6DA;background:linear-gradient(180deg,#FFF6F7,#FFFFFF);border-radius:16px;padding:22px 24px;text-align:center;position:relative;z-index:1;}
+  .leakbox .k{color:var(--dim);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;}
+  .leakbox .n{font-size:52px;font-weight:900;color:var(--leak);letter-spacing:-.02em;line-height:1.05;margin:6px 0 2px;}
+  .leakbox .y{color:var(--ink);font-size:14.5px;}
+  .leakbox .y b{color:var(--leak)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0 4px;position:relative;z-index:1;}
+  .cell{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#FCFCFE;}
+  .cell .l{color:var(--dim);font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;}
+  .cell .v{font-size:18px;font-weight:800;margin-top:3px;}
+  .say{font-size:14px;line-height:1.6;color:#2A3350;margin:18px 0 4px;position:relative;z-index:1;}
+  .say b{color:var(--ink)}
+  h2{font-size:14px;font-weight:800;margin:18px 0 8px;position:relative;z-index:1;}
+  .plug{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:#2A3350;margin:7px 0;position:relative;z-index:1;}
+  .plug .d{color:#12b981;font-weight:900}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;position:relative;z-index:1;}
+  .cta a{flex:1;min-width:220px;text-align:center;text-decoration:none;border-radius:11px;padding:14px 16px;font-size:13.5px;font-weight:800;}
+  .cta .go{background:linear-gradient(135deg,var(--p),var(--c));color:#fff}
+  .cta .book{background:#fff;border:1.5px solid var(--p);color:var(--p)}
+  .foot{border-top:1px solid #ECEEF5;margin-top:22px;padding-top:12px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--dim);position:relative;z-index:1;}
+  .foot .dot{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--c));}
+  @media print{ body{background:#fff} .stage{padding:0} .bar{display:none} .page{box-shadow:none;border-color:#E4E7F1} }
+  @media(max-width:600px){ .page{padding:30px 22px} h1{font-size:24px} .leakbox .n{font-size:40px} .grid{grid-template-columns:1fr 1fr} }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="bar">
+    <button class="btn primary" onclick="downloadPng()">⬇ Download image (for DM)</button>
+    <button class="btn ghost" onclick="window.print()">🖨 Save as PDF</button>
+  </div>
+
+  <div class="page" id="page">
+    <div class="corner tl"><svg viewBox="0 0 46 46"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs><path d="M6 40 L6 16 Q6 6 16 6 L40 6" fill="none" stroke="url(#g1)" stroke-width="3" stroke-linecap="round"/></svg></div>
+    <div class="corner tr"><svg viewBox="0 0 46 46"><path d="M40 40 L40 16 Q40 6 30 6 L6 6" fill="none" stroke="url(#g1)" stroke-width="3" stroke-linecap="round"/></svg></div>
+    <div class="corner bl"><svg viewBox="0 0 46 46"><path d="M6 6 L6 30 Q6 40 16 40 L40 40" fill="none" stroke="url(#g1)" stroke-width="3" stroke-linecap="round"/></svg></div>
+    <div class="corner br"><svg viewBox="0 0 46 46"><path d="M40 6 L40 30 Q40 40 30 40 L6 40" fill="none" stroke="url(#g1)" stroke-width="3" stroke-linecap="round"/></svg></div>
+
+    <div class="head">
+      <div class="brand"><div class="tile">S</div><div><b>JOOLT · Sophia</b><span>AI operator for small business</span></div></div>
+      <div class="doclabel">After-Hours<br>Leak Report</div>
+    </div>
+
+    <div class="prep">Prepared for</div>
+    <h1 id="spaName">Your Med Spa</h1>
+    <div class="sub" id="spaArea">Atlanta, GA</div>
+
+    <div class="leakbox">
+      <div class="k">Estimated revenue leaking after hours</div>
+      <div class="n" id="perMo">$0</div>
+      <div class="y">per month · <b id="perYr">$0</b> a year</div>
+    </div>
+
+    <div class="grid">
+      <div class="cell"><div class="l">After-hrs inquiries / wk</div><div class="v" id="c_inq">0</div></div>
+      <div class="cell"><div class="l">Answered fast today</div><div class="v" id="c_fast">0%</div></div>
+      <div class="cell"><div class="l">Winnable bookings / mo</div><div class="v" id="c_win">0</div></div>
+      <div class="cell"><div class="l">Avg ticket</div><div class="v" id="c_val">$0</div></div>
+    </div>
+
+    <p class="say" id="say"></p>
+
+    <h2>How Sophia plugs it</h2>
+    <div class="plug"><span class="d">✓</span><div><b>Answers every DM &amp; call the second it lands</b> — 9pm, Sunday, mid-treatment — so the lead never goes to the spa down the road.</div></div>
+    <div class="plug"><span class="d">✓</span><div><b>Books straight into your calendar</b> and sends the confirmation + reminder, cutting no-shows.</div></div>
+    <div class="plug"><span class="d">✓</span><div><b>Asks happy clients for reviews</b> automatically — your best marketing runs itself.</div></div>
+    <div class="plug"><span class="d">✓</span><div><b>Set up <u>for</u> you.</b> You don't touch the tech. Your business in a box — and you keep it.</div></div>
+
+    <div class="cta">
+      <a class="go" id="ctaGo" href="https://smb.joolt.io/" target="_blank" rel="noopener">Plug the leak — get Sophia set up →</a>
+      <a class="book" href="https://joolt.io/agent-rep" target="_blank" rel="noopener">Book a 10-min setup call</a>
+    </div>
+
+    <div class="foot"><span id="footSpa">The JOOLT Group</span><span class="dot"></span><span id="footDate">© 2026 JOOLT</span></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+  function qp(k, d){ try{ return new URLSearchParams(location.search).get(k) ?? d; }catch(e){ return d; } }
+  function money(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+  var RECAPTURE = 0.30;
+
+  var spa  = qp('spa','Your Med Spa');
+  var area = qp('area','Atlanta, GA');
+  var inq  = Math.max(1, +qp('inq',15) || 15);
+  var val  = Math.max(50, +qp('val',600) || 600);
+  var fast = Math.min(100, Math.max(0, +qp('fast',20)));
+  var slug = spa.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'med-spa';
+
+  var unansWk = inq * (1 - fast/100);
+  var winMo = unansWk * RECAPTURE * 4.3;
+  var perMo = winMo * val;
+  var perYr = perMo * 12;
+
+  document.getElementById('spaName').textContent = spa;
+  document.getElementById('spaArea').textContent = area;
+  document.getElementById('perMo').textContent = money(perMo);
+  document.getElementById('perYr').textContent = money(perYr);
+  document.getElementById('c_inq').textContent = inq;
+  document.getElementById('c_fast').textContent = fast + '%';
+  document.getElementById('c_win').textContent = Math.round(winMo);
+  document.getElementById('c_val').textContent = money(val);
+  document.getElementById('say').innerHTML =
+    'Based on what a spa like <b>' + spa + '</b> sees, roughly <b>' + (Math.round(unansWk*10)/10) +
+    ' after-hours inquiries a week</b> aren’t answered fast enough — and about 30% of those book with whoever replies first. ' +
+    'That’s an estimated <b>' + money(perMo) + ' a month</b> walking to a competitor while you’re closed.';
+  document.getElementById('footSpa').textContent = 'Prepared for ' + spa;
+  try { document.getElementById('footDate').textContent = '© ' + new Date().getFullYear() + ' The JOOLT Group'; } catch(e){}
+  document.title = spa + ' — After-Hours Leak Report';
+
+  function downloadPng(){
+    if (typeof html2canvas === 'undefined'){ alert('Image library still loading — try again in a second.'); return; }
+    html2canvas(document.getElementById('page'), {scale:2, backgroundColor:'#ffffff', useCORS:true}).then(function(cv){
+      var a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download=slug+'-leak-report.png'; a.click();
+    });
+  }
+</script>
+</body>
+</html>

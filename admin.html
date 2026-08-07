@@ -70,6 +70,9 @@
   .plist{font-size:12.5px;}
   .plist .pr{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(35,43,76,.5);}
   .plist .pr:last-child{border-bottom:none;}
+  .tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:8px 0 2px;}
+  .tools .tlabel{font-size:10.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);font-weight:800;margin-right:2px;}
+  .tools a.btn{text-decoration:none;}
 </style></head>
 <body>
 <div class="wrap">
@@ -91,6 +94,13 @@
         <button class="btn" onclick="load()">Refresh</button>
         <button class="btn" onclick="logout()">Lock</button>
       </div>
+    </div>
+    <div class="tools">
+      <span class="tlabel">Setup tools</span>
+      <a class="btn" href="https://smb.joolt.io/connect.html" target="_blank" rel="noopener">🔌 Connector Generator</a>
+      <a class="btn" href="https://smb.joolt.io/scorecard-generator.html" target="_blank" rel="noopener">📊 Scorecard Generator</a>
+      <a class="btn" href="https://smb.joolt.io/scorecard.html" target="_blank" rel="noopener">🔎 Public Scorecard</a>
+      <span class="sub" style="margin:0 0 0 auto;">Passphrase: <span class="mono">joolt-setup-2026</span></span>
     </div>
     <div id="body"></div>
     <div class="foot">Reads live from Stripe · usage is counts &amp; flags only, from the app heartbeat · keep this link private · &copy; 2026 The JOOLT Group</div>

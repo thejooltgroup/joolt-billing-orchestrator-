@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Med Spa After-Hours Leak Scorecard — JOOLT</title>
+<meta name="description" content="See how much revenue your med spa leaks from after-hours DMs and missed calls — and how to plug it.">
+<style>
+  :root{ --bg:#07091A; --panel:#111827; --panel2:#151C2C; --border:#1F2A3D; --text:#E5E9F0; --dim:#8B95AE; --p:#7C3AED; --c:#22D3EE; --good:#34D399; --warn:#FBBF24; }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(60% 40% at 85% 0%,rgba(124,58,237,.18),transparent 60%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;line-height:1.5;}
+  .wrap{max-width:760px;margin:0 auto;padding:34px 22px 90px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:18px;}
+  .tile{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--p),var(--c));display:grid;place-items:center;font-weight:800;font-size:21px;color:#fff;}
+  .brand b{font-size:15px}
+  .brand span{color:var(--dim);font-size:12px;display:block;margin-top:-2px}
+  h1{font-size:29px;line-height:1.15;margin:8px 0 6px;font-weight:800;letter-spacing:-.02em;}
+  h1 .grad{background:linear-gradient(135deg,#a78bfa,#22D3EE);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .lede{color:var(--dim);font-size:15px;margin:0 0 22px;max-width:60ch;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;margin:16px 0;}
+  label.q{display:block;font-weight:700;font-size:14.5px;margin:0 0 4px;}
+  .hint{color:var(--dim);font-size:12.5px;margin:0 0 12px;}
+  .field{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  input[type=range]{flex:1;accent-color:var(--p);height:4px;}
+  input[type=number]{width:120px;background:var(--panel2);border:1px solid var(--border);border-radius:9px;color:#fff;padding:10px 12px;font-size:15px;font-weight:700;}
+  .val{min-width:74px;text-align:right;font-weight:800;font-size:16px;color:#fff;}
+  .result{background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(34,211,238,.10));border:1px solid rgba(124,58,237,.4);border-radius:18px;padding:26px;text-align:center;margin:22px 0;}
+  .result .kicker{color:var(--dim);font-size:12px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;}
+  .bignum{font-size:52px;font-weight:900;line-height:1.05;margin:8px 0 2px;background:linear-gradient(135deg,#fca5a5,#FBBF24);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.02em;}
+  .subnum{color:var(--text);font-size:15px;}
+  .subnum b{color:#fff}
+  .breakdown{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;}
+  .bd{background:var(--panel2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;text-align:left;}
+  .bd .l{color:var(--dim);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;}
+  .bd .v{color:#fff;font-size:19px;font-weight:800;margin-top:3px;}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;}
+  .btn{flex:1;min-width:220px;text-align:center;text-decoration:none;border-radius:11px;padding:15px 18px;font-size:14.5px;font-weight:800;cursor:pointer;border:0;display:inline-block;}
+  .btn.primary{background:linear-gradient(135deg,var(--p),var(--c));color:#fff;}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--border);color:var(--text);}
+  h2{font-size:17px;margin:30px 0 10px;font-weight:800;}
+  .plug{display:flex;gap:12px;align-items:flex-start;margin:12px 0;color:#cfd6e6;font-size:14px;}
+  .plug .dot{color:var(--good);font-weight:900;flex-shrink:0;}
+  .assume{color:var(--dim);font-size:12px;border-left:2px solid var(--border);padding-left:12px;margin-top:14px;}
+  .foot{color:var(--dim);font-size:12px;text-align:center;margin-top:36px;}
+  @media(max-width:560px){ .bignum{font-size:42px} .breakdown{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><div class="tile">S</div><div><b>JOOLT · Sophia</b><span>Med Spa After-Hours Leak Scorecard</span></div></div>
+
+  <h1>How much is your med spa <span class="grad">leaking after hours?</span></h1>
+  <p class="lede">Most aesthetics inquiries land at night and on weekends — DMs, missed calls, form fills — when no one's at the desk. Whoever answers first books the treatment. Move the three sliders and see your number.</p>
+
+  <div class="card">
+    <label class="q">After-hours inquiries per week</label>
+    <div class="hint">DMs + missed calls + form fills that come in after 6pm or on weekends.</div>
+    <div class="field">
+      <input type="range" id="inq" min="2" max="60" value="15" step="1" oninput="calc()">
+      <div class="val" id="inqV">15</div>
+    </div>
+
+    <label class="q">Average value of a booked treatment or package</label>
+    <div class="hint">Your typical ticket — a single service or a package/membership.</div>
+    <div class="field">
+      <span class="val" style="min-width:20px">$</span>
+      <input type="range" id="val" min="150" max="4000" value="600" step="50" oninput="calc()">
+      <div class="val" id="valV">$600</div>
+    </div>
+
+    <label class="q">Of those after-hours inquiries, how many get a reply within 5 minutes today?</label>
+    <div class="hint">Be honest — after-hours, for most spas it's low.</div>
+    <div class="field">
+      <input type="range" id="fast" min="0" max="100" value="20" step="5" oninput="calc()">
+      <div class="val" id="fastV">20%</div>
+    </div>
+  </div>
+
+  <div class="result">
+    <div class="kicker">Estimated revenue leaking after hours</div>
+    <div class="bignum" id="perMo">$0</div>
+    <div class="subnum">per month · <b id="perYr">$0</b> a year</div>
+    <div class="breakdown">
+      <div class="bd"><div class="l">Unanswered fast / week</div><div class="v" id="unans">0</div></div>
+      <div class="bd"><div class="l">Winnable bookings / month</div><div class="v" id="winMo">0</div></div>
+    </div>
+    <div class="assume" id="assume"></div>
+  </div>
+
+  <div class="cta">
+    <a class="btn primary" href="https://smb.joolt.io/" target="_blank" rel="noopener">Plug the leak — get Sophia set up for you →</a>
+    <a class="btn ghost" href="https://joolt.io/agent-rep" target="_blank" rel="noopener">Book a 10-min setup call</a>
+  </div>
+
+  <h2>How Sophia plugs it</h2>
+  <div class="plug"><span class="dot">✓</span><div><b>Answers every DM and call the second it lands</b> — 9pm, Sunday, mid-treatment — so the lead never goes to the spa down the road.</div></div>
+  <div class="plug"><span class="dot">✓</span><div><b>Books straight into your calendar</b> and sends the confirmation + reminder, so fewer no-shows.</div></div>
+  <div class="plug"><span class="dot">✓</span><div><b>Asks happy clients for reviews</b> automatically, so your best marketing runs itself.</div></div>
+  <div class="plug"><span class="dot">✓</span><div><b>Set up <u>for</u> you</b> — you don't touch the tech. It's your business in a box, and you keep it.</div></div>
+
+  <div class="foot">© 2026 The JOOLT Group · This is an estimate to start a conversation, not a guarantee. Your numbers are your own.</div>
+</div>
+
+<script>
+  function money(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+  var RECAPTURE = 0.30; // share of unanswered after-hours leads winnable with instant response
+  function calc(){
+    var inq = +document.getElementById('inq').value;
+    var val = +document.getElementById('val').value;
+    var fast = +document.getElementById('fast').value; // %
+    document.getElementById('inqV').textContent = inq;
+    document.getElementById('valV').textContent = '$' + val.toLocaleString('en-US');
+    document.getElementById('fastV').textContent = fast + '%';
+
+    var unansweredWk = inq * (1 - fast/100);
+    var winnableWk = unansweredWk * RECAPTURE;
+    var winnableMo = winnableWk * 4.3;
+    var perMo = winnableMo * val;
+    var perYr = perMo * 12;
+
+    document.getElementById('unans').textContent = (Math.round(unansweredWk*10)/10);
+    document.getElementById('winMo').textContent = Math.round(winnableMo);
+    document.getElementById('perMo').textContent = money(perMo);
+    document.getElementById('perYr').textContent = money(perYr);
+    document.getElementById('assume').textContent =
+      'Assumes ~' + Math.round(RECAPTURE*100) + '% of after-hours inquiries you don’t answer within 5 minutes are winnable with an instant response. Adjust the sliders to match your reality.';
+  }
+  calc();
+</script>
+</body>
+</html>
