@@ -1874,7 +1874,7 @@ const Modal = {
 };
 
 /* ===================== Router + page renderers ===================== */
-const state = { page: "dashboard", contactDetailId: null };
+const state = { page: "plays", contactDetailId: null };
 
 const pages = {};
 pages["plays"] = () => '<iframe src="plays.html" title="Sophia\'s Plays" style="width:100%;height:calc(100vh - 120px);border:none;border-radius:14px;background:#07091A;display:block"></iframe>';
@@ -3297,7 +3297,7 @@ if (!Store.state.onboarded && Store.state.contacts.length === 0) {
   // Show wizard on first run
   setTimeout(() => openWizard(), 300);
 }
-go("dashboard");
+go("plays");
 updateBizName();
 updateCounts();
 /* Count automations run (for the admin usage record) without touching the flow itself. */
