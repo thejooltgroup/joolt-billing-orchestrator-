@@ -89,7 +89,9 @@
   .badge.gray { background: rgba(139,149,174,0.15); color: var(--text-dim); border-color: rgba(139,149,174,0.3); }
 
   .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 12px 0; overflow-y: auto; }
-  .nav-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: 12px 16px 6px; }
+  .nav-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: 12px 16px 6px; cursor: pointer; user-select: none; }
+  .nav-group-label::after { content: "\25BE"; float: right; transition: transform .2s; }
+  .nav-group-label.closed::after { transform: rotate(-90deg); }
   .nav-item {
     display: flex; align-items: center; gap: 10px; padding: 8px 16px; margin: 1px 8px;
     border-radius: 8px; color: var(--text-dim); font-size: 13px; font-weight: 500;
@@ -319,6 +321,7 @@
   <nav class="sidebar" id="sidebar">
     <div class="nav-group-label">Command Center</div>
     <div class="nav-item active" data-page="dashboard"><span class="ic">&#9680;</span><span class="lbl-text">Dashboard</span></div>
+    <div class="nav-item" data-page="plays"><span class="ic">&#9654;</span><span class="lbl-text">Sophia's Plays</span></div>
 
     <div class="nav-group-label">Front Office</div>
     <div class="nav-item" data-page="phone"><span class="ic">&#9742;</span><span class="lbl-text">Phone</span><span class="count" data-count="phone">0</span></div>
@@ -1874,6 +1877,7 @@ const Modal = {
 const state = { page: "dashboard", contactDetailId: null };
 
 const pages = {};
+pages["plays"] = () => '<iframe src="plays.html" title="Sophia\'s Plays" style="width:100%;height:calc(100vh - 120px);border:none;border-radius:14px;background:#07091A;display:block"></iframe>';
 
 pages.dashboard = () => {
   const s = Store.state;
@@ -2833,6 +2837,18 @@ function go(page) {
 function rerender() { go(state.page); updateCounts(); updateBizName(); }
 document.querySelectorAll(".nav-item").forEach(n => {
   n.addEventListener("click", () => go(n.dataset.page));
+});
+
+/* Collapsible sidebar groups — click a group label to fold/unfold its tabs */
+document.querySelectorAll(".nav-group-label").forEach(lbl => {
+  lbl.addEventListener("click", () => {
+    lbl.classList.toggle("closed");
+    let n = lbl.nextElementSibling;
+    while (n && !n.classList.contains("nav-group-label")) {
+      n.style.display = lbl.classList.contains("closed") ? "none" : "";
+      n = n.nextElementSibling;
+    }
+  });
 });
 
 function updateCounts() {
