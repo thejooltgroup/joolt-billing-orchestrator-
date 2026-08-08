@@ -440,7 +440,7 @@ const Store = {
   },
   migrateIfNeeded() {
     const s = this.state;
-    const buckets = ["contacts","deals","leads","invoices","payments","products","contracts","policies","reviews","calls","emails","chats","posts","tasks","activity","funnels","estimates"];
+    const buckets = ["contacts","deals","leads","invoices","payments","products","contracts","policies","reviews","calls","emails","chats","posts","tasks","activity","funnels","estimates","sophiaReceipts","sophiaOutputs"];
     buckets.forEach(b => { if (!Array.isArray(s[b])) s[b] = []; });
     if (!s.settings) s.settings = defaultSettings();
     if (!s.settings.autonomy) s.settings.autonomy = defaultSettings().autonomy;
@@ -1515,22 +1515,36 @@ const Actions = {
     }, 2000);
   },
 
-  /* Templates library */
+  /* Templates library — merges the built-in starter set with everything
+     Sophia's plays have produced for this owner (same order in view + copy). */
+  mergedLib(category) {
+    const mine = (Store.state.sophiaOutputs || [])
+      .filter(o => o.bucket === category)
+      .map(o => ({ title: o.title, body: o.body, _src: "play", play: o.play, date: o.date }));
+    const builtin = (TEMPLATE_LIBRARY[category] || [])
+      .map(t => ({ title: t.title, body: t.body, _src: "builtin" }));
+    return mine.concat(builtin); // your own plays first, starters below
+  },
   openTemplateLibrary(category) {
-    const lib = TEMPLATE_LIBRARY[category] || [];
+    const lib = this.mergedLib(category);
+    const mineCount = lib.filter(t => t._src === "play").length;
     const catName = { estimates: "Estimates", invoices: "Invoices", emails: "Emails", sms: "SMS scripts", social: "Social posts", contracts: "Contracts" }[category] || category;
-    const html = '<div style="max-height:60vh;overflow-y:auto;">' +
-      lib.map((t,i) => '<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-          '<b style="color:#FFF;font-size:14px;">' + escapeHtml(t.title) + '</b>' +
+    const sub = mineCount
+      ? ('<div style="color:var(--cyan-2);font-size:12px;margin-bottom:10px;">' + mineCount + ' from your plays · ' + (lib.length - mineCount) + ' starters</div>')
+      : '<div style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">Starter set. Run a play and its outputs land here automatically.</div>';
+    const html = '<div style="max-height:60vh;overflow-y:auto;">' + sub +
+      (lib.length ? lib.map((t,i) => '<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">' +
+          '<b style="color:#FFF;font-size:14px;">' + escapeHtml(t.title) +
+            (t._src === "play" ? ' <span class="badge cyan" style="font-size:9px;vertical-align:middle;">FROM YOUR PLAYS</span>' : '') + '</b>' +
           '<button class="btn sm primary" onclick="Actions.copyTemplate(\'' + category + '\',' + i + ')">Copy</button>' +
         '</div>' +
         '<div style="color:var(--text-dim);font-size:12px;line-height:1.55;white-space:pre-wrap;background:rgba(20,25,53,.5);padding:10px;border-radius:6px;font-family:ui-monospace,monospace;">' + escapeHtml(t.body) + '</div>' +
-      '</div>').join("") + '</div>';
-    Modal.info({ title: catName + " Library (" + lib.length + " templates)", body: html });
+      '</div>').join("") : '<div class="empty">Nothing here yet.</div>') + '</div>';
+    Modal.info({ title: catName + " Library (" + lib.length + ")", body: html });
   },
   copyTemplate(category, i) {
-    const t = (TEMPLATE_LIBRARY[category] || [])[i];
+    const t = this.mergedLib(category)[i];
     if (!t) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(t.body).then(() => toast("Template copied - paste anywhere"));
@@ -1882,6 +1896,20 @@ pages["plays"] = () => '<iframe src="plays.html" title="Sophia\'s Plays" style="
 
 /* ============ Sophia Sync — receipts from plays flow back into the app ============ */
 function syncEsc(x){ return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+/* Buckets that map to a Template Library category; everything else lands as "other". */
+const TEMPLATE_BUCKETS = ["estimates","invoices","emails","sms","social","contracts"];
+function normalizeBucket(b){
+  b = String(b == null ? "other" : b).toLowerCase().trim();
+  const map = {
+    estimate:"estimates", quote:"estimates", quotes:"estimates", estimates:"estimates", proposal:"estimates", proposals:"estimates",
+    invoice:"invoices", invoices:"invoices",
+    email:"emails", emails:"emails",
+    sms:"sms", text:"sms", texts:"sms",
+    social:"social", post:"social", posts:"social", caption:"social", captions:"social",
+    contract:"contracts", contracts:"contracts", agreement:"contracts", nda:"contracts"
+  };
+  return map[b] || (TEMPLATE_BUCKETS.indexOf(b) >= 0 ? b : "other");
+}
 function syncIngest(){
   const t = document.getElementById("syncPaste"); if (!t) return;
   const v = t.value.trim(), a = v.indexOf("{"), b = v.lastIndexOf("}");
@@ -1890,19 +1918,46 @@ function syncIngest(){
     const r = JSON.parse(v.slice(a, b + 1));
     if (r.joolt_receipt !== 1) { toast("That doesn't look like a Sophia receipt"); return; }
     r._ingested = Date.now();
-    Store.update(function(s){ s.sophiaReceipts = (s.sophiaReceipts || []); s.sophiaReceipts.push(r); });
-    toast("Receipt added — Sophia's numbers updated");
+    const outs = Array.isArray(r.outputs) ? r.outputs.filter(o => o && (o.body || o.title)) : [];
+    Store.update(function(s){
+      s.sophiaReceipts = (s.sophiaReceipts || []); s.sophiaReceipts.push(r);
+      if (outs.length){
+        s.sophiaOutputs = (s.sophiaOutputs || []);
+        outs.forEach(function(o){
+          s.sophiaOutputs.push({
+            bucket: normalizeBucket(o.bucket),
+            title: String(o.title || ((r.play || "Sophia") + " output")),
+            body: String(o.body || ""),
+            play: String(r.play || ""),
+            date: String(r.date || ""),
+            _ingested: Date.now()
+          });
+        });
+      }
+    });
+    toast(outs.length
+      ? ("Receipt added — " + outs.length + " output" + (outs.length > 1 ? "s" : "") + " saved to your library")
+      : "Receipt added — Sophia's numbers updated");
     go("sync");
   } catch(e) { toast("Couldn't read that — paste the entire json block, braces included"); }
 }
+/* Copy any synced output by its index in Store.state.sophiaOutputs */
+function copyOutput(i){
+  const o = (Store.state.sophiaOutputs || [])[i]; if (!o) return;
+  if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(o.body).then(() => toast("Copied — paste anywhere")); }
+  else { toast("Copy manually from the text above"); }
+}
 pages["sync"] = () => {
   const all = (Store.state.sophiaReceipts || []);
+  const outs = (Store.state.sophiaOutputs || []);
   const tot = { leads:0, bookings:0, posts_scheduled:0, emails_handled:0, calls_handled:0, reviews_answered:0, invoices_chased:0 };
   all.forEach(r => { const m = r.metrics || {}; for (const k in tot) tot[k] += (+m[k] || 0); });
   const recent = all.slice().reverse().slice(0, 10);
   const needs = recent.flatMap(r => (r.needs_owner || []).map(x => ({ x, play: r.play, date: r.date }))).slice(0, 8);
+  const bucketLabel = { estimates:"Estimate", invoices:"Invoice", emails:"Email", sms:"SMS", social:"Social post", contracts:"Contract", other:"Note" };
+  const recentOut = outs.map((o, i) => ({ o, i })).reverse().slice(0, 20);
   return `
-  <div class="page-h"><h1>Sophia Sync</h1><p class="sub">When a play finishes in Claude, Sophia hands you a receipt. Paste it here — your numbers update instantly. (Automatic folder sync is coming next.)</p></div>
+  <div class="page-h"><h1>Sophia Sync</h1><p class="sub">When a play finishes, Sophia hands you a receipt. Paste it here — your numbers update and anything she wrote (emails, posts, estimates…) lands in your library. This is the one place everything Sophia makes shows up. (Automatic folder sync is coming next.)</p></div>
   <div class="kpi-grid">
     <div class="kpi"><div class="lbl">Leads captured</div><div class="val">${tot.leads}</div><div class="delta">${tot.bookings} booked</div></div>
     <div class="kpi"><div class="lbl">Posts scheduled</div><div class="val">${tot.posts_scheduled}</div><div class="delta">by Sophia</div></div>
@@ -1919,6 +1974,17 @@ pages["sync"] = () => {
       <div class="card-h"><div class="card-title">Needs you</div><span class="badge cyan">${needs.length}</span></div>
       ${needs.length ? needs.map(n => `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px">${syncEsc(n.x)} <span style="color:#6A7599;font-size:11px">· ${syncEsc(n.play)} · ${syncEsc(n.date)}</span></div>`).join("") : '<div class="empty">Nothing waiting on you. Nice.</div>'}
     </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-h"><div class="card-title">Everything Sophia made</div><span class="badge cyan">${outs.length}</span></div>
+    <p style="color:#6A7599;font-size:12px;margin:0 0 8px">Every draft from your plays — emails, posts, estimates, contracts — lands here. Template-type outputs also show up under <span class="clickable" onclick="go('templates')" style="text-decoration:underline;cursor:pointer">Templates</span>, so both doors show the same set.</p>
+    ${recentOut.length ? recentOut.map(({o, i}) => `<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <b>${syncEsc(o.title)}</b>
+        <button class="btn sm" onclick="copyOutput(${i})">Copy</button>
+      </div>
+      <span style="color:#6A7599;font-size:11px">${syncEsc(bucketLabel[o.bucket] || o.bucket)} · ${syncEsc(o.play)}${o.date ? " · " + syncEsc(o.date) : ""}</span>
+    </div>`).join("") : '<div class="empty">Nothing yet. When a play writes something for you, paste its receipt above and it shows up here — ready to copy.</div>'}
   </div>
   <div class="card" style="margin-top:14px">
     <div class="card-h"><div class="card-title">Recent plays</div><span class="badge cyan">${all.length}</span></div>
@@ -2259,18 +2325,25 @@ pages.templates = () => {
     ["social","Social posts","Canva · IG · FB · LinkedIn"],
     ["contracts","Contracts","MSA · NDA · SOW · W-9"]
   ];
+  const myOut = (Store.state.sophiaOutputs || []);
+  const mineFor = key => myOut.filter(o => o.bucket === key).length;
+  const totalMine = myOut.filter(o => o.bucket !== "other").length;
   return `
     <div class="page-header">
-      <div><h1 class="page-title">Templates</h1><div class="page-sub">Every asset you need, wired to your brand voice. Click a category to view + copy.</div></div>
+      <div><h1 class="page-title">Templates</h1><div class="page-sub">Your starter set plus everything Sophia's plays have written for you — all in one place. Click a category to view + copy.</div></div>
     </div>
+    ${totalMine ? `<div class="card" style="margin:0 0 14px;background:rgba(34,211,238,.06);border-color:rgba(34,211,238,.25);"><div style="font-size:13px;color:var(--cyan-2);"><b>${totalMine}</b> item${totalMine>1?"s":""} from your plays are in your library. New outputs land here whenever you paste a receipt in <span class="clickable" onclick="go('sync')" style="text-decoration:underline;cursor:pointer;">Sophia Sync</span>.</div></div>` : `<div class="card" style="margin:0 0 14px;"><div style="font-size:13px;color:var(--text-dim);">This is your starter set. When a play writes something — an email, a post, an estimate — paste its receipt in <span class="clickable" onclick="go('sync')" style="text-decoration:underline;cursor:pointer;">Sophia Sync</span> and it shows up here automatically, in your voice.</div></div>`}
     <div class="grid-3">
-      ${cats.map(([key,name,sub]) => `
+      ${cats.map(([key,name,sub]) => {
+        const mine = mineFor(key);
+        const total = (TEMPLATE_LIBRARY[key]||[]).length + mine;
+        return `
         <div class="card" style="margin:0;">
           <div class="card-title">${name}</div>
           <div style="color:var(--text-dim); font-size:12px; margin: 4px 0 6px;">${sub}</div>
-          <div style="color:var(--cyan-2); font-size:11px; font-weight:700; letter-spacing:.06em; margin-bottom:10px;">${(TEMPLATE_LIBRARY[key]||[]).length} TEMPLATES</div>
+          <div style="color:var(--cyan-2); font-size:11px; font-weight:700; letter-spacing:.06em; margin-bottom:10px;">${total} TEMPLATE${total===1?"":"S"}${mine?` · ${mine} FROM YOUR PLAYS`:""}</div>
           <button class="btn sm primary" onclick="Actions.openTemplateLibrary('${key}')">Open library →</button>
-        </div>`).join("")}
+        </div>`;}).join("")}
     </div>
   `;
 };
