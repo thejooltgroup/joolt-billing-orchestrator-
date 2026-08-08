@@ -320,8 +320,9 @@
 
   <nav class="sidebar" id="sidebar">
     <div class="nav-group-label">Command Center</div>
-    <div class="nav-item active" data-page="dashboard"><span class="ic">&#9680;</span><span class="lbl-text">Dashboard</span></div>
-    <div class="nav-item" data-page="plays"><span class="ic">&#9654;</span><span class="lbl-text">Sophia's Plays</span></div>
+    <div class="nav-item active" data-page="plays"><span class="ic">&#9654;</span><span class="lbl-text">Sophia's Plays</span></div>
+    <div class="nav-item" data-page="dashboard"><span class="ic">&#9680;</span><span class="lbl-text">Dashboard</span></div>
+    <div class="nav-item" data-page="sync"><span class="ic">&#8645;</span><span class="lbl-text">Sophia Sync</span></div>
 
     <div class="nav-group-label">Front Office</div>
     <div class="nav-item" data-page="phone"><span class="ic">&#9742;</span><span class="lbl-text">Phone</span><span class="count" data-count="phone">0</span></div>
@@ -1878,6 +1879,52 @@ const state = { page: "plays", contactDetailId: null };
 
 const pages = {};
 pages["plays"] = () => '<iframe src="plays.html" title="Sophia\'s Plays" style="width:100%;height:calc(100vh - 120px);border:none;border-radius:14px;background:#07091A;display:block"></iframe>';
+
+/* ============ Sophia Sync — receipts from plays flow back into the app ============ */
+function syncEsc(x){ return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function syncIngest(){
+  const t = document.getElementById("syncPaste"); if (!t) return;
+  const v = t.value.trim(), a = v.indexOf("{"), b = v.lastIndexOf("}");
+  if (a === -1 || b === -1) { toast("Paste the whole receipt — the json block Sophia gave you"); return; }
+  try {
+    const r = JSON.parse(v.slice(a, b + 1));
+    if (r.joolt_receipt !== 1) { toast("That doesn't look like a Sophia receipt"); return; }
+    r._ingested = Date.now();
+    Store.update(function(s){ s.sophiaReceipts = (s.sophiaReceipts || []); s.sophiaReceipts.push(r); });
+    toast("Receipt added — Sophia's numbers updated");
+    go("sync");
+  } catch(e) { toast("Couldn't read that — paste the entire json block, braces included"); }
+}
+pages["sync"] = () => {
+  const all = (Store.state.sophiaReceipts || []);
+  const tot = { leads:0, bookings:0, posts_scheduled:0, emails_handled:0, calls_handled:0, reviews_answered:0, invoices_chased:0 };
+  all.forEach(r => { const m = r.metrics || {}; for (const k in tot) tot[k] += (+m[k] || 0); });
+  const recent = all.slice().reverse().slice(0, 10);
+  const needs = recent.flatMap(r => (r.needs_owner || []).map(x => ({ x, play: r.play, date: r.date }))).slice(0, 8);
+  return `
+  <div class="page-h"><h1>Sophia Sync</h1><p class="sub">When a play finishes in Claude, Sophia hands you a receipt. Paste it here — your numbers update instantly. (Automatic folder sync is coming next.)</p></div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="lbl">Leads captured</div><div class="val">${tot.leads}</div><div class="delta">${tot.bookings} booked</div></div>
+    <div class="kpi"><div class="lbl">Posts scheduled</div><div class="val">${tot.posts_scheduled}</div><div class="delta">by Sophia</div></div>
+    <div class="kpi"><div class="lbl">Emails + calls handled</div><div class="val">${tot.emails_handled + tot.calls_handled}</div><div class="delta">${tot.reviews_answered} reviews answered</div></div>
+    <div class="kpi"><div class="lbl">Invoices chased</div><div class="val">${tot.invoices_chased}</div><div class="delta">${all.length} plays synced</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-h"><div class="card-title">Paste a Sophia receipt</div></div>
+      <textarea id="syncPaste" placeholder='Paste the json block from the end of any play — starts with {"joolt_receipt":1,...}' style="width:100%;min-height:150px;background:#0D1226;border:1px solid #232B4C;border-radius:10px;color:#F0F3FA;padding:12px;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>
+      <div style="margin-top:10px"><button class="btn primary" onclick="syncIngest()">Add receipt</button></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-title">Needs you</div><span class="badge cyan">${needs.length}</span></div>
+      ${needs.length ? needs.map(n => `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px">${syncEsc(n.x)} <span style="color:#6A7599;font-size:11px">· ${syncEsc(n.play)} · ${syncEsc(n.date)}</span></div>`).join("") : '<div class="empty">Nothing waiting on you. Nice.</div>'}
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-h"><div class="card-title">Recent plays</div><span class="badge cyan">${all.length}</span></div>
+    ${recent.length ? recent.map(r => `<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px"><b>${syncEsc(r.play)}</b> <span style="color:#6A7599">· ${syncEsc(r.date)}</span><br/><span style="color:#A0A9C5">${syncEsc(r.summary)}</span></div>`).join("") : '<div class="empty">No receipts yet. Run a play from Sophia&rsquo;s Plays, then paste its receipt here.</div>'}
+  </div>`;
+};
 
 pages.dashboard = () => {
   const s = Store.state;
