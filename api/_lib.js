@@ -60,8 +60,78 @@ export function env() {
     FOUNDERS_MAX: process.env.FOUNDERS_MAX || "50",
     MASTER_LICENSE_KEY: process.env.MASTER_LICENSE_KEY || "",
     PILOT_LICENSE_KEYS: process.env.PILOT_LICENSE_KEYS || "",
-    PILOT_EXPIRES_AT: process.env.PILOT_EXPIRES_AT || ""
+    PILOT_EXPIRES_AT: process.env.PILOT_EXPIRES_AT || "",
+    GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID || "",
+    GMAIL_CLIENT_SECRET: process.env.GMAIL_CLIENT_SECRET || "",
+    GMAIL_REFRESH_TOKEN: process.env.GMAIL_REFRESH_TOKEN || "",
+    WELCOME_FROM: process.env.WELCOME_FROM || "Troy at JOOLT <admin@thejooltgroup.com>"
   };
+}
+
+/* -------- Instant welcome email (Gmail API, sends AS admin@thejooltgroup.com) --------
+   Fires after a successful checkout. Fully isolated: any failure here is
+   swallowed — it can NEVER affect billing or the webhook response. */
+function b64url(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function sendWelcomeEmail(session, sku, E) {
+  try {
+    if (!E.GMAIL_CLIENT_ID || !E.GMAIL_CLIENT_SECRET || !E.GMAIL_REFRESH_TOKEN) return; // not configured — skip silently
+    const to = session.customer_details && session.customer_details.email;
+    if (!to) return;
+    const first = ((session.customer_details && session.customer_details.name) || "").split(" ")[0] || "there";
+    const oneTime = sku === "founders" ? "$99 Founder's fee" : "$197 one-time fee";
+    const emailHtml = `
+<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#1a1a2e;line-height:1.6">
+  <p>Hi ${first},</p>
+  <p>Welcome to JOOLT — you just hired Sophia. Here's your next 10 minutes:</p>
+  <p><b>1. Open your Suite (bookmark this):</b><br/>
+  <a href="https://smb.joolt.io/smb-suite-app.html">smb.joolt.io/smb-suite-app.html</a><br/>
+  You'll land on Sophia's Plays — the jobs she runs for your business. A few work right now; the rest turn on when your tools are connected.</p>
+  <p><b>2. Book your setup call (do this today):</b><br/>
+  Reply to this email with two times that work this week. On a 30-minute screen-share we install your Sophia box, connect the tools you already use, and turn your plays on. You'll leave the call with Sophia already working.</p>
+  <p><b>3. Your billing, in plain English:</b><br/>
+  &bull; Today: $0 — your 3-day free trial is running<br/>
+  &bull; Day 3: your one-time ${oneTime}<br/>
+  &bull; Day 30: your $24.99/mo license begins (cancel anytime)<br/>
+  Your receipt session ID: <code style="font-size:12px">${session.id}</code></p>
+  <p>One promise: <b>Sophia drafts, you approve.</b> Nothing is ever sent, posted, or paid without your OK.</p>
+  <p>Talk soon,<br/>Troy Walker<br/>The JOOLT Group &middot; <a href="https://smb.joolt.io">smb.joolt.io</a></p>
+  <p style="color:#667;font-size:13px">P.S. If you'd rather not touch any setup yourself, ask about Guided Setup on your call — we do every step with you.</p>
+</div>`;
+    // 1. Exchange the refresh token for a short-lived access token
+    const tokRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: E.GMAIL_CLIENT_ID,
+        client_secret: E.GMAIL_CLIENT_SECRET,
+        refresh_token: E.GMAIL_REFRESH_TOKEN,
+        grant_type: "refresh_token"
+      }).toString()
+    });
+    const tok = await tokRes.json();
+    if (!tok.access_token) return;
+
+    // 2. Build the RFC-2822 message and send via Gmail as admin@thejooltgroup.com
+    const subject = "You're in — here's your JOOLT SMB Suite (2-minute start)";
+    const mime =
+      "From: " + E.WELCOME_FROM + "\r\n" +
+      "To: " + to + "\r\n" +
+      "Reply-To: admin@thejooltgroup.com\r\n" +
+      "Subject: =?UTF-8?B?" + btoa(String.fromCharCode(...new TextEncoder().encode(subject))) + "?=\r\n" +
+      "MIME-Version: 1.0\r\n" +
+      "Content-Type: text/html; charset=UTF-8\r\n" +
+      "\r\n" + emailHtml;
+    await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + tok.access_token, "Content-Type": "application/json" },
+      body: JSON.stringify({ raw: b64url(mime) })
+    });
+  } catch (e) { /* never let email problems touch billing */ }
 }
 
 /* -------- Checkout handler (shared by /checkout/founders and /checkout/suite) -------- */
@@ -188,6 +258,10 @@ async function handleCheckoutCompleted(session, E) {
 
   const schedule = await stripe(E, "POST", "/v1/subscription_schedules", p);
   if (schedule.error) return json({ error: "schedule_failed", detail: schedule.error.message }, 500);
+
+  // Billing is fully set up — now (and only now) send the instant welcome email.
+  // Isolated: sendWelcomeEmail can never throw or alter the response.
+  await sendWelcomeEmail(session, sku, E);
 
   return json({ ok: true, scheduleId: schedule.id, customer: customerId, sku });
 }
