@@ -888,7 +888,7 @@ const Sophia = {
   registerAction(id, fn) { this.actionRunners[id] = fn; },
   runAction(id) { const fn = this.actionRunners[id]; if (fn) fn(); },
 
-  async callClaude(apiKey, userMsg, state) {
+  async callClaude(apiKey, userMsg, state, opts) {
     const biz = state.business;
     const voice = (biz.voice && biz.voice.rules || []).join(" · ");
     const contextLines = [
@@ -899,6 +899,17 @@ const Sophia = {
     const systemPrompt = `You are Sophia, an AI operator for a small business. You handle inbox, invoicing, reviews, leads, marketing, and admin so the owner can focus on the actual work.\n\nBUSINESS CONTEXT:\n${contextLines}\n\nVOICE RULES (must follow):\n${voice || "Friendly, direct, no fluff."}\n\nSTYLE:\n- Under 120 words unless asked for more\n- Use the owner's voice\n- When drafting emails/replies, produce the actual draft, not a description of one\n- When asked about numbers, give specific figures from the context above`;
 
     // Try current models in order; if one is retired/not-found for this key, fall back to the next.
+    // Conversation memory: keep prior turns so Sophia remembers the same chat.
+    const useHist = !(opts && opts.noHistory);
+    let msgs;
+    if (useHist) {
+      Sophia._history = Sophia._history || [];
+      Sophia._history.push({ role: "user", content: userMsg });
+      if (Sophia._history.length > 24) Sophia._history = Sophia._history.slice(-24);
+      msgs = Sophia._history;
+    } else {
+      msgs = [{ role: "user", content: userMsg }];
+    }
     const models = (Sophia._model ? [Sophia._model] : []).concat(["claude-sonnet-4-5-20250929", "claude-sonnet-4-6", "claude-3-5-sonnet-latest"]);
     let lastErr = "";
     for (const model of models) {
@@ -914,13 +925,15 @@ const Sophia = {
           model: model,
           max_tokens: 1024,
           system: systemPrompt,
-          messages: [{ role: "user", content: userMsg }]
+          messages: msgs
         })
       });
       if (r.ok) {
         Sophia._model = model; // remember the one that worked
         const data = await r.json();
-        return (data.content && data.content[0] && data.content[0].text) || "(no response)";
+        const text = (data.content && data.content[0] && data.content[0].text) || "(no response)";
+        if (useHist) Sophia._history.push({ role: "assistant", content: text });
+        return text;
       }
       const err = await r.json().catch(() => ({}));
       const msg = (err.error && err.error.message) || ("HTTP " + r.status);
@@ -3418,7 +3431,7 @@ Actions.saveClaudeKey = async () => {
   if (!key) { toast("Claude key cleared"); rerender(); return; }
   toast("Testing Claude API…");
   try {
-    const reply = await Sophia.callClaude(key, "Reply with exactly: OK", Store.state);
+    const reply = await Sophia.callClaude(key, "Reply with exactly: OK", Store.state, {noHistory:true});
     if (/OK/i.test(reply)) { toast("✓ Claude key works — Sophia now uses real AI", "success"); }
     else { toast("Claude responded — key works", "success"); }
     rerender();
