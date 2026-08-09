@@ -83,7 +83,7 @@ async function sendWelcomeEmail(session, sku, E) {
     const to = session.customer_details && session.customer_details.email;
     if (!to) return;
     const first = ((session.customer_details && session.customer_details.name) || "").split(" ")[0] || "there";
-    const oneTime = sku === "founders" ? "$99 Founder's fee" : "$197 one-time fee";
+    const oneTime = sku === "founders" ? "$39 Founder's fee" : "$79 one-time fee";
     const emailHtml = `
 <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#1a1a2e;line-height:1.6">
   <p>Hi ${first},</p>
@@ -153,8 +153,8 @@ export async function handleCheckout(sku) {
     const cancelUrl = `https://joolt.io?canceled=1`;
 
     const explainer = sku === "founders"
-      ? "Founder's Edition — 3-day free trial. Your $99 one-time is charged on day 3. Your $24.99/mo license begins billing on day 30. Cancel anytime."
-      : "SMB Suite — 3-day free trial. Your $197 one-time is charged on day 3. Your $24.99/mo license begins billing on day 30. Cancel anytime.";
+      ? "Founder's Edition — 3-day free trial. Your $39 one-time is charged on day 3. Your $24.99/mo license begins billing on day 30. Cancel anytime."
+      : "SMB Suite — 3-day free trial. Your $79 one-time is charged on day 3. Your $24.99/mo license begins billing on day 30. Cancel anytime.";
 
     const p = new URLSearchParams();
     p.set("mode", "setup");
