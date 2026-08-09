@@ -88,6 +88,29 @@ textarea.inp{min-height:70px;resize:vertical}
   .grpttl{font-size:14px}
   .card{padding:15px}
 }
+.wzhead{margin-bottom:16px}
+.wzdots{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wzdot{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--mut);cursor:pointer;background:var(--panel);flex:none}
+.wzdot.on{background:linear-gradient(135deg,#4F7CFF,#22D3EE);color:#fff;border:none}
+.wzdot.done{background:rgba(52,211,153,.18);color:#6EE7B7;border-color:rgba(52,211,153,.4)}
+.wzcount{font-size:12px;color:var(--mut);font-weight:700;margin-left:auto}
+.wzcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:12px}
+.wzcard .ic{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,rgba(79,124,255,.22),rgba(34,211,238,.18));border:1px solid rgba(34,211,238,.35);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:14px}
+.wzcard h2{font-size:19px;margin-bottom:5px}
+.wzcard .sub{color:var(--mut);font-size:14px;margin-bottom:16px;line-height:1.5;max-width:620px}
+.wzhint{font-size:12.5px;color:var(--mut);margin-top:10px;line-height:1.5}
+.wzhint b{color:#7DD3FC}
+.wzerr{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);color:#FCD34D}
+.wzok{margin-top:4px;color:#6EE7B7;font-size:14px;font-weight:700}
+.wnav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px}
+.wzhelp{text-align:center;color:var(--mut);font-size:12.5px;margin-top:10px;line-height:1.9}
+.wzhelp a{color:var(--cy);cursor:pointer;font-weight:700;text-decoration:none}
+.chk{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.chk:last-child{border-bottom:none}
+.chk .k{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none}
+.chk .k.y{background:rgba(52,211,153,.18);color:#6EE7B7}
+.chk .k.n{background:var(--panel2);color:var(--mut);border:1px solid var(--line)}
+@media(max-width:680px){.wzcard{padding:17px}}
 </style></head>
 <body>
 <div class="mtop"><div class="m">S</div><b>Sophia</b><span id="mmode" class="modepill mode-practice">PRACTICE</span></div>
@@ -140,7 +163,7 @@ function defaultState(){
     license:{ key:"", valid:false, status:"", checkedAt:0 },
     deviceId:"",
     profile:{ name:"Vinings HVAC Co", industry:"HVAC", voice:"friendly and direct" },
-    setup:{ plugin:false, profile:true, tools:{ QuickBooks:false, Gmail:true, Instagram:true, Stripe:false, HubSpot:false, Calendar:false } },
+    setup:{ plugin:false, step:1, taught:false, profile:true, tools:{ QuickBooks:false, Gmail:true, Instagram:true, Stripe:false, HubSpot:false, Calendar:false } },
     dials:{},
     kpi:{ leads:5, invoices_chased:0, posts_ready:0, reviews:2 },
     data:practiceSeed(),
@@ -182,7 +205,7 @@ const ALL_AUTOS={}; GROUPS.forEach(g=>g.items.forEach(a=>ALL_AUTOS[a.key]=a));
 function dialOf(key){ return Store.state.dials[key] || (ALL_AUTOS[key].ready?"ask":"ask"); }
 
 /* ============================ Sophia tools (client-side) ============================ */
-const MODELS=["claude-sonnet-4-5-20250929","claude-sonnet-4-6","claude-3-5-sonnet-latest"];
+const MODELS=["claude-sonnet-4-5-20250929","claude-sonnet-4-5","claude-3-5-sonnet-latest","claude-3-5-haiku-latest"];
 let workingModel=null;
 async function anthropic(body){
   const list=workingModel?[workingModel]:MODELS; let lastErr="";
@@ -249,7 +272,31 @@ function dismissDraft(id){ Store.state.drafts=Store.state.drafts.filter(x=>x.id!
 function copyText(t){ if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>toast("Copied")); }
 function toggleTool(name){ Store.state.setup.tools[name]=!Store.state.setup.tools[name]; Store.save(); render(); }
 function setPluginInstalled(){ Store.state.setup.plugin=true; Store.save(); toast("Marked as installed. (Install the .plugin in the same Claude account you'll run plays in.)"); render(); }
-function saveKey(){ const v=document.getElementById("keyIn").value.trim(); if(!v){toast("Paste your Claude key first.");return;} Store.state.apiKey=v; Store.save(); toast(v.startsWith("sk-ant-")?"Key saved. Sophia can run now.":"Saved — but that doesn't look like an sk-ant- key."); render(); }
+function setWiz(n){ n=Math.max(1,Math.min(6,n)); Store.state.setup.step=n; Store.save(); render(); }
+function markTaught(){ Store.state.setup.taught=true; Store.save(); toast("Great — Sophia has your business details."); setWiz(6); }
+async function saveKey(){
+  const el=document.getElementById("keyIn"); const v=el?el.value.trim():"";
+  if(!v){ toast("Paste your Claude key first."); return; }
+  if(!v.startsWith("sk-ant-")){ toast("That doesn't look like a Claude key — it should start with sk-ant-"); }
+  Store.state.apiKey=v; Store.state.setup.keyOk=false; Store.state.setup.keyErr="testing"; Store.save(); render();
+  workingModel=null;
+  try{
+    await anthropic({max_tokens:8,messages:[{role:"user",content:"ping"}]});
+    Store.state.setup.keyOk=true; Store.state.setup.keyErr=""; Store.save(); toast("✓ Your key works — Sophia can run."); render();
+  }catch(e){
+    Store.state.setup.keyOk=false; Store.state.setup.keyErr=friendlyKeyError((e&&e.message)||String(e)); Store.save(); render();
+  }
+}
+function friendlyKeyError(msg){
+  var m=(msg||"").toLowerCase();
+  if(m.indexOf("credit")>=0||m.indexOf("balance")>=0) return "Your key is valid, but its Anthropic account has no credit yet. Add credits at console.anthropic.com → Plans & Billing. (API credits are separate from a Claude.ai subscription.)";
+  if(m.indexOf("authentication")>=0||m.indexOf("x-api-key")>=0||m.indexOf("401")>=0||m.indexOf("invalid api")>=0) return "Anthropic didn't accept this key. Copy a fresh one from console.anthropic.com → API keys (it starts with sk-ant-).";
+  if(m.indexOf("permission")>=0||m.indexOf("not_authorized")>=0||m.indexOf("403")>=0) return "This key isn't allowed to use the Messages API. Create a standard key at console.anthropic.com.";
+  if(m.indexOf("model")>=0||m.indexOf("not_found")>=0||m.indexOf("404")>=0) return "The model wasn't found on this account — that's on our side, not your key. Let us know so we can refresh it.";
+  if(m.indexOf("failed to fetch")>=0||m.indexOf("networkerror")>=0||m.indexOf("load failed")>=0) return "The request was blocked before it reached Anthropic — a browser extension, VPN, or firewall can do this. Try another browser or turn off extensions.";
+  if(m.indexOf("rate")>=0||m.indexOf("429")>=0) return "Too many requests right now — wait a few seconds and try again.";
+  return "Couldn't reach Anthropic: "+msg;
+}
 function deviceId(){ if(!Store.state.deviceId){ Store.state.deviceId="ck-"+Math.random().toString(36).slice(2,10)+Date.now().toString(36); Store.save(); } return Store.state.deviceId; }
 async function verifyLicense(){
   const lic=Store.state.license; if(!lic.key) return;
@@ -363,30 +410,70 @@ function renderResults(){
 function renderSetup(){
   const s=Store.state; const t=s.setup.tools;
   const tool=(n)=>`<div class="chip">${n} ${t[n]?'<span class="badge b-g">Connected</span>':'<span class="act" onclick="toggleTool(\''+n+'\')">Connect</span>'}</div>`;
-  return `
-    <div class="ph"><div><h1>Set up Sophia</h1><div class="s">Do these once. This is what turns the cockpit into your real business engine.</div></div></div>
-    <div class="card" style="background:rgba(34,211,238,.06);border-color:rgba(34,211,238,.3);margin-bottom:14px"><span style="font-size:13px;color:var(--mut)">Two different things, so it's clear: your <b style="color:#7DD3FC">license key</b> (step 1) <b>activates</b> the Suite you bought. Your <b style="color:#7DD3FC">Claude key</b> (step 4) is what <b>powers Sophia's thinking</b> so she can run the plays. You need both to run for real — Practice mode needs neither.</span></div>
-    <div class="step"><div class="num ${s.license.valid?'done':''}">${s.license.valid?'✓':'1'}</div><div style="flex:1"><b>1 · Activate your Suite — license key</b><p>Your license key was emailed to you after checkout. It unlocks the Suite. (You can explore in Practice mode without one.)</p><div style="display:flex;gap:8px;max-width:560px"><input class="inp" id="licIn" type="password" placeholder="Paste your license key"><button class="btn p" onclick="saveLicense()">Activate</button></div>${s.license.key?`<div style="font-size:12px;margin-top:6px;color:${s.license.valid?'#6EE7B7':'#FCD34D'}">${s.license.valid?('✓ Active'+(s.license.status?' ('+esc(s.license.status)+')':'')):('Status: '+esc(s.license.status||'not verified')+' — Practice mode still works')} · <span class="copy" onclick="verifyLicense()">re-check</span></div>`:''}</div></div>
-    <div class="step"><div class="num ${s.setup.plugin?'done':''}">${s.setup.plugin?'✓':'2'}</div><div style="flex:1"><b>2 · Install the Sophia Workspace Plugin</b><p>This gives Sophia her plays. Install it in the same Claude account you'll run plays in.</p>${s.setup.plugin?'<span class="badge b-g">Installed</span> <span class="copy" onclick="Store.state.setup.plugin=false;Store.save();render()">mark not installed</span>':'<button class="btn g sm" onclick="setPluginInstalled()">I\'ve installed it ✓</button>'}</div></div>
-    <div class="step"><div class="num">3</div><div style="flex:1"><b>3 · Connect your tools (your MCP connectors)</b><p>Each tool you connect lets Sophia work on your <b>real</b> business — and unlocks more plays. Connect what you use; skip the rest.</p><div class="conn">${["QuickBooks","Gmail","Instagram","Stripe","HubSpot","Calendar"].map(tool).join("")}</div></div></div>
-    <div class="step"><div class="num ${s.apiKey?'done':''}">${s.apiKey?'✓':'4'}</div><div style="flex:1"><b>4 · Give Sophia her brain — your Claude key</b><p>The cockpit talks to Claude with your key (stays in your browser, never sent anywhere but Anthropic). This is what lets Sophia actually run the plays here.</p><div style="display:flex;gap:8px;max-width:560px"><input class="inp" id="keyIn" type="password" placeholder="sk-ant-…"><button class="btn p" onclick="saveKey()">Save</button></div>${s.apiKey?'<div style="color:#6EE7B7;font-size:12px;margin-top:6px">✓ Key saved — Sophia can run.</div>':''}</div></div>
-    <div class="step"><div class="num">5</div><div style="flex:1"><b>5 · Teach Sophia your business</b><p>Hand Sophia your business once — she learns your name, prices, and voice and remembers it for every play.</p><button class="btn g sm" onclick="toast('In the Box, run Setup with Sophia in Claude (paste your Export my setup). Here in practice, she already knows the demo business.')">How this works</button></div></div>
+  const connCount=Object.values(t).filter(Boolean).length;
+  const done=[null, s.license.valid, s.setup.plugin, connCount>0, s.setup.keyOk===true, !!s.setup.taught];
+  const doneCount=done.slice(1).filter(Boolean).length;
+  let step=s.setup.step||1; if(step<1)step=1; if(step>6)step=6;
+  const help=`<div class="wzhelp">Rather have us do it? <a href="https://buy.stripe.com/7sYaEQc2l8lHadCafxcbC12" target="_blank" rel="noopener">Done-for-you $199</a> · <a href="https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L" target="_blank" rel="noopener">Full concierge $750</a><br><a onclick="go('today')">Just exploring? Look around in Practice →</a>${step<6?` &nbsp;·&nbsp; <a onclick="setWiz(6)">Skip to the finish →</a>`:``}</div>`;
 
-    <div class="card" style="background:linear-gradient(135deg,rgba(52,211,153,.10),rgba(34,211,238,.06));border-color:rgba(52,211,153,.32)">
-      <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between">
-        <div style="flex:1;min-width:240px"><b>Rather not set this up yourself?</b><div style="color:var(--mut);font-size:13px;margin-top:3px">Have a JOOLT specialist do it with you — or do the whole thing for you. Pick how much you want off your plate.</div></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn g sm" style="width:auto" href="https://buy.stripe.com/7sYaEQc2l8lHadCafxcbC12" target="_blank" rel="noopener">Done-for-you setup · $199</a>
-          <a class="btn p sm" style="width:auto" href="https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L" target="_blank" rel="noopener">Full concierge — we do it all · $750</a>
-        </div>
-      </div>
-    </div>
+  if(step>=6){
+    const row=(i,label)=>`<div class="chk"><div class="k ${done[i]?'y':'n'}">${done[i]?'✓':i}</div><div style="flex:1"><b style="font-size:14px">${label}</b></div>${done[i]?'<span class="badge b-g">Done</span>':`<span class="copy" onclick="setWiz(${i})">Finish →</span>`}</div>`;
+    return `
+    <div class="ph"><div><h1>${doneCount===5?"You're all set 🎉":'Your setup'}</h1><div class="s">${doneCount===5?"Sophia's ready to work. You can change anything anytime.":doneCount+" of 5 done — finish the rest whenever you like."}</div></div></div>
+    <div class="card">${row(1,'Suite turned on')}${row(2,"Sophia's playbook installed")}${row(3,'Apps connected')}${row(4,'Claude key working')}${row(5,'Business details taught')}</div>
     <div class="card" style="background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(34,211,238,.06));border-color:rgba(251,191,36,.3)">
-      <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>${s.mode==='practice'?'Practice mode — rehearse safely':'Live mode — real business'}</b><div style="color:var(--mut);font-size:13px;margin-top:3px">${s.mode==='practice'?'You\'re on safe demo data. Practice running plays and approving. When you\'re ready, clear it and go live on your real business.':'You\'re working on your real business. You can drop back to Practice anytime with fresh demo data.'}</div></div>${s.mode==='practice'?'<button class="btn p" onclick="goLive()">Make my Sophia Box live →</button>':'<button class="btn g" onclick="backToPractice()">Back to practice</button>'}</div>
+      <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>${s.mode==='practice'?'Practice mode — rehearse safely':'Live mode — real business'}</b><div style="color:var(--mut);font-size:13px;margin-top:3px">${s.mode==='practice'?"You're on safe demo data. When you're ready, clear it and go live on your real business.":"You're working on your real business. You can drop back to Practice anytime."}</div></div>${s.mode==='practice'?'<button class="btn p" onclick="goLive()">Make my Sophia Box live →</button>':'<button class="btn g" onclick="backToPractice()">Back to practice</button>'}</div>
     </div>
     <div class="card" style="background:linear-gradient(135deg,rgba(124,92,255,.16),rgba(34,211,238,.14));border-color:rgba(124,92,255,.4)">
-      <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>Your plan: Sophia in a Box — you run it</b><div style="color:#cdd6f0;font-size:13px;margin-top:3px">You run the plays here with your own connected tools. Want Sophia to run them <b>for you, 24/7</b> — even with your laptop closed? That's Sophia Hosted.</div></div><a class="btn up sm" style="width:auto" href="index.html#sophia">Upgrade to Sophia Hosted →</a></div>
-    </div>`;
+      <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>Your plan: Sophia in a Box — you run it</b><div style="color:#cdd6f0;font-size:13px;margin-top:3px">Want Sophia to run the plays <b>for you, 24/7</b> — even with your laptop closed? That's Sophia Hosted.</div></div><a class="btn up sm" style="width:auto" href="index.html#sophia">Upgrade to Sophia Hosted →</a></div>
+    </div>
+    <div class="wzhelp"><a onclick="setWiz(1)">← Review the setup steps</a></div>`;
+  }
+
+  const META={
+   1:{ic:'🔑',t:'Turn on your Suite',sub:"Paste the key from your welcome email so your Suite unlocks. No key yet? Skip it — you can still explore in Practice."},
+   2:{ic:'🧩',t:"Add Sophia's playbook",sub:"Install the Sophia plugin in your Claude app. It's what gives Sophia the ready-made jobs she runs for you."},
+   3:{ic:'🔌',t:'Connect your apps',sub:"Turn on the apps you already use so Sophia can work in them. Skip any you don't use — you can add more anytime."},
+   4:{ic:'🧠',t:'Give Sophia her brain',sub:"Your Claude key is what lets Sophia think and do the work. It stays in your browser — we never see it. We'll test it the moment you save."},
+   5:{ic:'🏪',t:'Teach Sophia your business',sub:"Answer a few quick questions once (over in your Claude app) so Sophia knows your name, your prices, and your voice."}
+  };
+  const m=META[step];
+
+  let body='';
+  if(step===1){
+    body = s.license.valid
+      ? `<div class="wzok">✓ Your Suite is on${s.license.status?' ('+esc(s.license.status)+')':''}.</div>`
+      : `<div style="display:flex;gap:8px;flex-wrap:wrap"><input class="inp" id="licIn" type="password" placeholder="Paste your license key" style="flex:1;min-width:180px"><button class="btn p" onclick="saveLicense()">Turn it on</button></div>${s.license.key?`<div class="wzhint" style="color:#FCD34D">Status: ${esc(s.license.status||'checking…')} — Practice mode still works. <span class="copy" onclick="verifyLicense()">re-check</span></div>`:`<div class="wzhint">Your license key was in your welcome email. <b>No key?</b> That's fine — skip this and explore in Practice.</div>`}`;
+  } else if(step===2){
+    body = s.setup.plugin
+      ? `<div class="wzok">✓ Playbook installed. <span class="copy" onclick="Store.state.setup.plugin=false;Store.save();render()">undo</span></div>`
+      : `<button class="btn p" onclick="setPluginInstalled()">I've installed it ✓</button><div class="wzhint"><b>What's a plugin?</b> A one-time add-on for the Claude app that teaches Sophia your business jobs. Get it from your welcome email, install it in Claude, then tap the button.</div>`;
+  } else if(step===3){
+    body = `<div class="conn">${["QuickBooks","Gmail","Instagram","Stripe","HubSpot","Calendar"].map(tool).join("")}</div><div class="wzhint">${connCount} of 6 connected. <b>These are your apps</b> — connecting one lets Sophia read and draft inside it. Connect what you use, skip the rest.</div>`;
+  } else if(step===4){
+    if(s.setup.keyOk===true){
+      body = `<div class="wzok">✓ Your key works — Sophia can run right here.</div><div class="wzhint"><span class="copy" onclick="Store.state.setup.keyOk=false;Store.state.setup.keyErr='';Store.save();render()">change key</span></div>`;
+    } else {
+      const testing=s.setup.keyErr==='testing';
+      body = `<div style="display:flex;gap:8px;flex-wrap:wrap"><input class="inp" id="keyIn" type="password" placeholder="sk-ant-…" style="flex:1;min-width:180px"><button class="btn p" onclick="saveKey()"${testing?' disabled':''}>${testing?'Testing…':'Save & test'}</button></div>`
+        + (testing?`<div class="wzhint"><span class="busy"></span> Checking your key with Anthropic…</div>`:``)
+        + (s.setup.keyErr&&!testing?`<div class="wzerr">${esc(s.setup.keyErr)}</div>`:``)
+        + `<div class="wzhint"><b>New to this?</b> Your Claude key comes from <b>console.anthropic.com → API keys</b>. It's separate from a Claude.ai chat plan and needs its own credits to run.</div>`;
+    }
+  } else {
+    body = s.setup.taught
+      ? `<div class="wzok">✓ Sophia knows your business.</div>`
+      : `<button class="btn p" onclick="markTaught()">I've done this ✓</button> <button class="btn g sm" onclick="toast('In your Claude app, open Sophia and run the setup — paste your Export my setup. In Practice, she already knows the demo business.')">How it works</button><div class="wzhint">This one happens in your Claude app, not here. It teaches Sophia your details once so every job sounds like you.</div>`;
+  }
+
+  const dots=[1,2,3,4,5].map(i=>`<div class="wzdot ${i===step?'on':(done[i]?'done':'')}" onclick="setWiz(${i})">${done[i]&&i!==step?'✓':i}</div>`).join('');
+  const nav=`<div class="wnav">${step>1?`<button class="btn g sm" onclick="setWiz(${step-1})">← Back</button>`:'<span></span>'}${done[step]?`<button class="btn p" onclick="setWiz(${step+1})">${step<5?'Continue →':'Finish →'}</button>`:`<button class="btn g sm" onclick="setWiz(${step+1})">Skip for now →</button>`}</div>`;
+
+  return `
+    <div class="ph"><div><h1>Let's set up Sophia</h1><div class="s">A few quick steps, one at a time. Skip anything you're not ready for — you can come back.</div></div></div>
+    <div class="wzhead"><div class="wzdots">${dots}<span class="wzcount">Step ${step} of 5</span></div></div>
+    <div class="wzcard"><div class="ic">${m.ic}</div><h2>${step} · ${m.t}</h2><div class="sub">${m.sub}</div>${body}${nav}</div>
+    ${help}`;
 }
 
 Store.load(); go("setup");
