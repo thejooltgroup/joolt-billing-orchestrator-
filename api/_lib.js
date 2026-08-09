@@ -96,7 +96,7 @@ async function sendWelcomeEmail(session, sku, E) {
   <p><b>3. Your billing, in plain English:</b><br/>
   &bull; Today: $0 — your 3-day free trial is running<br/>
   &bull; Day 3: your one-time ${oneTime}<br/>
-  &bull; Day 30: your $24.99/mo license begins (cancel anytime)<br/>
+  &bull; Day 30: your $7.99/mo license begins (cancel anytime)<br/>
   Your receipt session ID: <code style="font-size:12px">${session.id}</code></p>
   <p>One promise: <b>Sophia drafts, you approve.</b> Nothing is ever sent, posted, or paid without your OK.</p>
   <p>Talk soon,<br/>Troy Walker<br/>The JOOLT Group &middot; <a href="https://smb.joolt.io">smb.joolt.io</a></p>
@@ -153,8 +153,8 @@ export async function handleCheckout(sku) {
     const cancelUrl = `https://joolt.io?canceled=1`;
 
     const explainer = sku === "founders"
-      ? "Founder's Edition — 3-day free trial. Your $39 one-time is charged on day 3. Your $24.99/mo license begins billing on day 30. Cancel anytime."
-      : "SMB Suite — 3-day free trial. Your $79 one-time is charged on day 3. Your $24.99/mo license begins billing on day 30. Cancel anytime.";
+      ? "Founder's Edition — 3-day free trial. Your $39 one-time is charged on day 3. Your $7.99/mo license begins billing on day 30. Cancel anytime."
+      : "SMB Suite — 3-day free trial. Your $79 one-time is charged on day 3. Your $7.99/mo license begins billing on day 30. Cancel anytime.";
 
     const p = new URLSearchParams();
     p.set("mode", "setup");
