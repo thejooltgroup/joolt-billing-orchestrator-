@@ -349,6 +349,15 @@ function renderSetup(){
     <div class="step"><div class="num ${s.apiKey?'done':''}">${s.apiKey?'✓':'4'}</div><div style="flex:1"><b>4 · Give Sophia her brain — your Claude key</b><p>The cockpit talks to Claude with your key (stays in your browser, never sent anywhere but Anthropic). This is what lets Sophia actually run the plays here.</p><div style="display:flex;gap:8px;max-width:560px"><input class="inp" id="keyIn" type="password" placeholder="sk-ant-…"><button class="btn p" onclick="saveKey()">Save</button></div>${s.apiKey?'<div style="color:#6EE7B7;font-size:12px;margin-top:6px">✓ Key saved — Sophia can run.</div>':''}</div></div>
     <div class="step"><div class="num">5</div><div style="flex:1"><b>5 · Teach Sophia your business</b><p>Hand Sophia your business once — she learns your name, prices, and voice and remembers it for every play.</p><button class="btn g sm" onclick="toast('In the Box, run Setup with Sophia in Claude (paste your Export my setup). Here in practice, she already knows the demo business.')">How this works</button></div></div>
 
+    <div class="card" style="background:linear-gradient(135deg,rgba(52,211,153,.10),rgba(34,211,238,.06));border-color:rgba(52,211,153,.32)">
+      <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between">
+        <div style="flex:1;min-width:240px"><b>Rather not set this up yourself?</b><div style="color:var(--mut);font-size:13px;margin-top:3px">Have a JOOLT specialist do it with you — or do the whole thing for you. Pick how much you want off your plate.</div></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn g sm" style="width:auto" href="https://buy.stripe.com/7sYaEQc2l8lHadCafxcbC12" target="_blank" rel="noopener">Done-for-you setup · $199</a>
+          <a class="btn p sm" style="width:auto" href="https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L" target="_blank" rel="noopener">Full concierge — we do it all · $750</a>
+        </div>
+      </div>
+    </div>
     <div class="card" style="background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(34,211,238,.06));border-color:rgba(251,191,36,.3)">
       <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>${s.mode==='practice'?'Practice mode — rehearse safely':'Live mode — real business'}</b><div style="color:var(--mut);font-size:13px;margin-top:3px">${s.mode==='practice'?'You\'re on safe demo data. Practice running plays and approving. When you\'re ready, clear it and go live on your real business.':'You\'re working on your real business. You can drop back to Practice anytime with fresh demo data.'}</div></div>${s.mode==='practice'?'<button class="btn p" onclick="goLive()">Clear practice &amp; go live →</button>':'<button class="btn g" onclick="backToPractice()">Back to practice</button>'}</div>
     </div>
