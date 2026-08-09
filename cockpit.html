@@ -448,24 +448,55 @@ function promptFor(key){
   const a=ALL_AUTOS[key]||{name:'this play',desc:''}; const bucket=RUN_BUCKET[key]||'other';
   return 'Sophia — run my "'+a.name+'" play on my real business.\n\n'
     +(a.desc||'')+'\nUse my connected tools. Draft everything for my approval — do not send, post, or pay anything.\n\n'
-    +'When you finish, end your reply with ONLY this results block, filled in, inside a ```json code fence so my cockpit can read it:\n'
-    +'```json\n{\n  "play": "'+a.name+'",\n  "outputs": [ { "bucket": "'+bucket+'", "title": "short label", "body": "the finished draft, ready to use" } ],\n  "kpi": {},\n  "done": ["one line on what you did"]\n}\n```';
+    +'When you finish, add your results at the very end in EXACTLY this plain-text format (no code block, no JSON) so my cockpit can read them:\n\n'
+    +'===SOPHIA RESULTS===\n'
+    +'play: '+a.name+'\n'
+    +'[ITEM]\n'
+    +'title: a short label for this draft\n'
+    +'bucket: '+bucket+'\n'
+    +'body:\n'
+    +'the finished draft here — as many lines as you like, quotes and line breaks are fine\n'
+    +'[ITEM]\n'
+    +'title: the next draft\n'
+    +'bucket: '+bucket+'\n'
+    +'body:\n'
+    +'...\n'
+    +'===END===';
 }
 function openRun(key){ runOpen=key; autoOpen=key; render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; window.scrollTo(0,0); try{ if(navigator.clipboard) navigator.clipboard.writeText(promptFor(key)); }catch(e){} }
 function closeRun(){ runOpen=null; render(); window.scrollTo(0,0); }
 function copyPromptRun(){ const p=promptFor(runOpen); if(navigator.clipboard){ navigator.clipboard.writeText(p).then(function(){toast("Copied — now paste it into your Sophia chat.");},function(){toast("Couldn't copy — select the text in the box and copy it manually.");}); } else { toast("Select the text in the box and copy it manually."); } }
 function ingestReceipt(){
-  const el=document.getElementById("rcpt"); const raw=el?el.value:"";
-  if(!raw.trim()){ toast("Paste Sophia's whole reply first."); return; }
-  let obj=null; const cands=[]; const m=raw.match(/```json\s*([\s\S]*?)```/i)||raw.match(/```\s*([\s\S]*?)```/); if(m) cands.push(m[1]); const br=raw.match(/\{[\s\S]*\}/); if(br) cands.push(br[0]);
-  for(let i=0;i<cands.length;i++){ try{ obj=JSON.parse(cands[i]); break; }catch(e){} }
-  if(!obj||!Array.isArray(obj.outputs)){ toast("Couldn't find Sophia's results block. Copy her WHOLE reply (including the code block at the end) and paste it again."); return; }
-  const nm=(ALL_AUTOS[runOpen]&&ALL_AUTOS[runOpen].name)||obj.play||"Sophia"; let added=0;
-  obj.outputs.forEach(function(o){ if(!o||(!o.title&&!o.body)) return; Store.state.drafts.unshift({id:"d"+Date.now()+Math.floor(Math.random()*9999),automation:obj.play||nm,title:o.title||"(untitled)",body:o.body||"",bucket:o.bucket||"other",status:"pending",when:Date.now()}); added++; });
-  if(obj.kpi&&typeof obj.kpi==="object"){ Object.keys(obj.kpi).forEach(function(k){ if(k in Store.state.kpi && typeof obj.kpi[k]==="number") Store.state.kpi[k]=obj.kpi[k]; }); }
-  if(Array.isArray(obj.done)) obj.done.forEach(function(d){ if(d) Store.state.done.unshift({id:"a"+Date.now()+Math.floor(Math.random()*999),summary:String(d),when:Date.now()}); });
-  Store.save(); runOpen=null; autoOpen=null;
-  toast(added?("✓ Loaded "+added+" item"+(added===1?"":"s")+" from Sophia into Results."):"Loaded Sophia's update.");
+  const el=document.getElementById("rcpt"); const raw0=el?el.value:"";
+  if(!raw0.trim()){ toast("Paste Sophia's whole reply first."); return; }
+  let raw=raw0;
+  const bm=raw.match(/===\s*SOPHIA[^\n]*===([\s\S]*?)(?:===\s*END\s*===|$)/i);
+  if(bm) raw=bm[1];
+  let items=[], kpi={}, play="";
+  const parts=raw.split(/\[ITEM\]/i);
+  if(parts.length>1){
+    const head=parts[0];
+    const pm=head.match(/play\s*:\s*(.+)/i); if(pm) play=pm[1].trim();
+    const km=head.match(/kpi\s*:\s*(.+)/i); if(km){ km[1].split(",").forEach(function(kv){ const pp=kv.split("="); if(pp.length===2){ const v=parseFloat(pp[1]); if(!isNaN(v)) kpi[pp[0].trim()]=v; } }); }
+    for(let i=1;i<parts.length;i++){
+      let seg=parts[i].replace(/===\s*END\s*===[\s\S]*$/i,"");
+      const bkt=(seg.match(/bucket\s*:\s*(.+)/i)||[])[1];
+      const ttl=(seg.match(/title\s*:\s*(.+)/i)||[])[1];
+      let body=""; const bi=seg.search(/body\s*:/i);
+      if(bi>=0){ body=seg.slice(bi).replace(/^body\s*:[ \t]*\|?[ \t]*\r?\n?/i,"").trim(); }
+      if((ttl&&ttl.trim())||body){ items.push({bucket:(bkt?bkt.trim():"other"),title:(ttl?ttl.trim():"(untitled)"),body:body}); }
+    }
+  }
+  if(items.length===0){
+    const cands=[]; const jm=raw0.match(/```json\s*([\s\S]*?)```/i)||raw0.match(/```\s*([\s\S]*?)```/); if(jm) cands.push(jm[1]); const br=raw0.match(/\{[\s\S]*\}/); if(br) cands.push(br[0]);
+    for(let i=0;i<cands.length;i++){ try{ const o=JSON.parse(cands[i]); if(o&&Array.isArray(o.outputs)){ o.outputs.forEach(function(x){ if(x&&(x.title||x.body)) items.push({bucket:x.bucket||"other",title:x.title||"(untitled)",body:x.body||""}); }); if(o.play) play=o.play; if(o.kpi&&typeof o.kpi==="object") Object.keys(o.kpi).forEach(function(k){ if(typeof o.kpi[k]==="number") kpi[k]=o.kpi[k]; }); break; } }catch(e){} }
+  }
+  if(items.length===0){ toast("Couldn't read Sophia's results. Copy her WHOLE reply — including the ===SOPHIA RESULTS=== block at the end — and paste it again."); return; }
+  const nm=(ALL_AUTOS[runOpen]&&ALL_AUTOS[runOpen].name)||play||"Sophia";
+  items.forEach(function(o){ Store.state.drafts.unshift({id:"d"+Date.now()+Math.floor(Math.random()*9999),automation:play||nm,title:o.title,body:o.body,bucket:o.bucket,status:"pending",when:Date.now()}); });
+  Object.keys(kpi).forEach(function(k){ if(k in Store.state.kpi) Store.state.kpi[k]=kpi[k]; });
+  Store.save(); const added=items.length; runOpen=null; autoOpen=null;
+  toast("✓ Loaded "+added+" item"+(added===1?"":"s")+" from Sophia into Results.");
   go("results");
 }
 function renderRunPanel(a){
