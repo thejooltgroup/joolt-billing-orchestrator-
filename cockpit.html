@@ -1,0 +1,346 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sophia Cockpit — JOOLT SMB</title>
+<style>
+:root{--bg:#070A1B;--panel:#0E1430;--panel2:#131c3d;--line:#26305A;--cy:#22D3EE;--pu:#7C5CFF;--tx:#EAF0FF;--mut:#93A0C4;--gr:#34D399;--am:#FBBF24}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+body{background:var(--bg);color:var(--tx)}
+.app{display:flex;min-height:100vh}
+.side{width:230px;flex:none;background:#090D20;border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 12px}
+.brand .m{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#4F7CFF,#22D3EE);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900}
+.brand b{font-size:16px}.brand small{display:block;color:var(--mut);font-size:11px}
+.modepill{margin:2px 8px 10px;font-size:11px;font-weight:800;border-radius:999px;padding:5px 10px;text-align:center}
+.mode-practice{background:rgba(251,191,36,.15);color:#FCD34D;border:1px solid rgba(251,191,36,.4)}
+.mode-live{background:rgba(52,211,153,.15);color:#6EE7B7;border:1px solid rgba(52,211,153,.4)}
+.nav{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;cursor:pointer;color:#C7D0EA;font-size:14.5px;font-weight:600}
+.nav .i{width:20px;text-align:center}.nav:hover{background:#111737}
+.nav.on{background:linear-gradient(135deg,rgba(79,124,255,.25),rgba(34,211,238,.18));color:#fff}
+.side .up{margin-top:auto;background:linear-gradient(135deg,rgba(124,92,255,.2),rgba(34,211,238,.16));border:1px solid rgba(124,92,255,.4);border-radius:12px;padding:14px}
+.side .up b{font-size:13px}.side .up p{color:var(--mut);font-size:11.5px;margin:4px 0 8px}
+.btn{border:none;border-radius:9px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;color:#fff;background:#1b2447;text-decoration:none;display:inline-block}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.p{background:linear-gradient(135deg,#4F7CFF,#22D3EE)}
+.btn.g{background:transparent;border:1px solid var(--line);color:#C7D0EA}
+.btn.sm{padding:6px 11px;font-size:12px}
+.btn.up{background:linear-gradient(135deg,#7C5CFF,#22D3EE);width:100%;text-align:center}
+.main{flex:1;padding:24px 30px;overflow:auto}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.ph h1{font-size:25px}.ph .s{color:var(--mut);font-size:14px;margin-top:2px}
+.screen{display:none}.screen.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+.card h3{font-size:15px;margin-bottom:2px}
+.rowi{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.rowi:last-child{border-bottom:none}
+.rowi .t{font-size:14px}.rowi .d{color:var(--mut);font-size:12px;margin-top:2px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi .l{color:var(--mut);font-size:12px}.kpi .v{font-size:26px;font-weight:800;margin-top:2px}
+.badge{font-size:10px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.b-g{background:rgba(52,211,153,.15);color:#6EE7B7}.b-c{background:rgba(34,211,238,.14);color:#7DD3FC}.b-a{background:rgba(251,191,36,.15);color:#FCD34D}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.acard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.acard .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.acard .ic{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#4F7CFF,#22D3EE);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex:none}
+.acard .nm{font-weight:700;font-size:14.5px}
+.acard p{color:var(--mut);font-size:12.5px;flex:1;line-height:1.45}
+.dial{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:11px}
+.dial span{flex:1;text-align:center;padding:5px 0;color:var(--mut);cursor:pointer}
+.dial span.on{background:linear-gradient(135deg,rgba(79,124,255,.3),rgba(34,211,238,.22));color:#fff;font-weight:700}
+.arow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.grpttl{font-size:15px;margin:22px 0 10px;color:#EAF0FF}
+.strip{background:linear-gradient(135deg,rgba(124,92,255,.18),rgba(34,211,238,.16));border:1px solid rgba(124,92,255,.4);border-radius:14px;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.step{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--line);border-radius:12px;margin-bottom:12px;background:var(--panel)}
+.step .num{width:34px;height:34px;flex:none;border-radius:10px;background:linear-gradient(135deg,#4F7CFF,#22D3EE);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center}
+.step .num.done{background:linear-gradient(135deg,#10B981,#34D399)}
+.step b{font-size:15px}.step p{color:var(--mut);font-size:13px;margin:3px 0 8px}
+.conn{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+.chip{display:flex;justify-content:space-between;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px}
+.chip .act{color:var(--cy);font-size:11px;cursor:pointer;font-weight:700}
+.copy{color:var(--cy);font-size:11px;cursor:pointer;font-weight:700}
+.inp{width:100%;background:#0D1226;border:1px solid var(--line);border-radius:9px;color:#F0F3FA;padding:10px 12px;font-size:13px}
+textarea.inp{min-height:70px;resize:vertical}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#0E1430;border:1px solid var(--cy);color:#EAF0FF;padding:12px 18px;border-radius:12px;font-size:13px;max-width:560px;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:60;display:none}
+.chat{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto;margin-bottom:10px}
+.msg{max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.45}
+.msg.u{align-self:flex-end;background:#1B2240;border:1px solid #2A335C}
+.msg.b{align-self:flex-start;background:#0E1430;border:1px solid #26305A}
+.busy{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#22D3EE;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:900px){.kpis,.grid3,.conn{grid-template-columns:1fr 1fr}.side{width:180px}}
+</style></head>
+<body>
+<div class="app">
+  <div class="side">
+    <div class="brand"><div class="m">S</div><div><b>Sophia</b><small>JOOLT SMB Cockpit</small></div></div>
+    <div id="modepill" class="modepill mode-practice">PRACTICE MODE</div>
+    <div class="nav on" data-s="today" onclick="go('today')"><span class="i">🏠</span> Today</div>
+    <div class="nav" data-s="auto" onclick="go('auto')"><span class="i">▶</span> Automations</div>
+    <div class="nav" data-s="results" onclick="go('results')"><span class="i">📥</span> Results</div>
+    <div class="nav" data-s="setup" onclick="go('setup')"><span class="i">⚙</span> Setup</div>
+    <div class="up"><b>Business in a Box</b><p>You run the plays, Sophia does the work. Ready for hands‑off?</p><a class="btn up sm" href="index.html">Upgrade to Hosted →</a></div>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ Store ============================ */
+const KEY="joolt-cockpit-v1";
+function practiceSeed(){
+  return {
+    leads:[
+      {name:"Marcus Reed",source:"Website chat",note:"AC not cooling, wants quote this week"},
+      {name:"Dana Klein",source:"Missed call",note:"Furnace making noise"},
+      {name:"Priya Shah",source:"Instagram DM",note:"Asked about maintenance plans"},
+      {name:"Tom Alvarez",source:"Referral",note:"New build, needs full system"},
+      {name:"Beth Cho",source:"Facebook",note:"Thermostat install"}
+    ],
+    invoices:[
+      {customer:"Acme Co",amount:1400,daysOverdue:12,status:"overdue"},
+      {customer:"Riverside Cafe",amount:680,daysOverdue:5,status:"overdue"},
+      {customer:"HalpernLLC",amount:2200,daysOverdue:0,status:"due"}
+    ],
+    reviews:[
+      {customer:"Dana",rating:4,text:"Great work, showed up a little late."},
+      {customer:"Luis",rating:5,text:"Fast and friendly, highly recommend."}
+    ],
+    emails:[
+      {from:"jen@maple.co",subject:"Quote for rooftop unit?",body:"Can you send pricing for a 5-ton rooftop unit install?"},
+      {from:"mike.d@gmail.com",subject:"Reschedule",body:"Need to move Thursday's appointment to Friday."}
+    ],
+    contacts:[]
+  };
+}
+function defaultState(){
+  return {
+    mode:"practice",
+    apiKey:"",
+    profile:{ name:"Vinings HVAC Co", industry:"HVAC", voice:"friendly and direct" },
+    setup:{ plugin:false, profile:true, tools:{ QuickBooks:false, Gmail:true, Instagram:true, Stripe:false, HubSpot:false, Calendar:false } },
+    dials:{},
+    kpi:{ leads:5, invoices_chased:0, posts_ready:0, reviews:2 },
+    data:practiceSeed(),
+    drafts:[],
+    done:[],
+    chat:[]
+  };
+}
+const Store={
+  state:null,
+  load(){ try{ this.state=JSON.parse(localStorage.getItem(KEY)); }catch(e){ this.state=null; } if(!this.state||!this.state.profile) this.state=defaultState(); this.migrate(); },
+  migrate(){ const d=defaultState(); for(const k in d){ if(this.state[k]===undefined) this.state[k]=d[k]; } if(!this.state.data) this.state.data=practiceSeed(); },
+  save(){ localStorage.setItem(KEY,JSON.stringify(this.state)); }
+};
+
+/* ============================ Automations ============================ */
+const GROUPS=[
+  { title:"📞 Win every customer", items:[
+    {key:"phone", ic:"☎", name:"Phone Desk", ready:true, desc:"Missed calls & voicemails → ready-to-send text-backs.", src:"leads"},
+    {key:"dms", ic:"📥", name:"After-Hours Inbox", need:"Instagram / Facebook", desc:"Sweeps your DMs and drafts replies in your voice.", src:"leads"},
+    {key:"calllist", ic:"📇", name:"Today's Call List", need:"HubSpot", desc:"The 5 calls that matter most today, with talking points.", src:"leads"},
+  ]},
+  { title:"⭐ Grow & keep them coming back", items:[
+    {key:"reviews", ic:"★", name:"Review Engine", ready:true, desc:"Reply to every review the right way and get more.", src:"reviews"},
+    {key:"content", ic:"📅", name:"Content Week", need:"Instagram / Facebook", desc:"A week of posts from a 5-minute brief, in your voice.", src:null},
+    {key:"email", ic:"✉", name:"Email Inbox", need:"Gmail", desc:"Triage customer emails and draft replies in your voice.", src:"emails"},
+    {key:"templates", ic:"🗒", name:"Template Pack", ready:true, desc:"Your reusable messages — quotes, reminders, review asks.", src:null},
+  ]},
+  { title:"💰 Get paid & know your numbers", items:[
+    {key:"invoice", ic:"$", name:"Invoice Chase", need:"QuickBooks / Stripe", desc:"Finds who owes you and drafts polite reminders.", src:"invoices"},
+    {key:"money", ic:"📊", name:"Money Monthly", need:"QuickBooks", desc:"Your month in plain English + the one thing to do.", src:"invoices"},
+  ]},
+  { title:"🗂 Keep the back office tidy", items:[
+    {key:"crm", ic:"◉", name:"CRM Tidy", need:"HubSpot", desc:"Stale deals revived or closed, duplicates merged.", src:"contacts"},
+    {key:"contract", ic:"§", name:"Contract Check", ready:true, desc:"Any contract in plain English with red flags marked.", src:null},
+  ]},
+];
+const ALL_AUTOS={}; GROUPS.forEach(g=>g.items.forEach(a=>ALL_AUTOS[a.key]=a));
+function dialOf(key){ return Store.state.dials[key] || (ALL_AUTOS[key].ready?"ask":"ask"); }
+
+/* ============================ Sophia tools (client-side) ============================ */
+const MODELS=["claude-sonnet-4-5-20250929","claude-sonnet-4-6","claude-3-5-sonnet-latest"];
+let workingModel=null;
+async function anthropic(body){
+  const list=workingModel?[workingModel]:MODELS; let lastErr="";
+  for(const model of list){
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"x-api-key":Store.state.apiKey,"anthropic-version":"2023-06-01","content-type":"application/json","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(Object.assign({model},body))});
+    if(r.ok){ workingModel=model; return await r.json(); }
+    const e=await r.json().catch(()=>({})); const msg=(e.error&&e.error.message)||("HTTP "+r.status); lastErr=msg;
+    const modelIssue=r.status===404||(e.error&&e.error.type==="not_found_error")||/^model:/i.test(msg);
+    if(!modelIssue) throw new Error(msg);
+  }
+  throw new Error(lastErr||"No available model");
+}
+const TOOLS=[
+  {name:"get_profile",description:"Get the owner's business profile and whether we are in practice or live mode.",input_schema:{type:"object",properties:{}}},
+  {name:"list_data",description:"List the owner's items of a given kind so you can work from real details.",input_schema:{type:"object",properties:{kind:{type:"string",enum:["leads","invoices","reviews","emails","contacts"]}},required:["kind"]}},
+  {name:"add_draft",description:"Create a draft output for the owner to approve. Use once per finished piece (each email, text, post, estimate, or reply). Nothing is ever sent — the owner approves.",input_schema:{type:"object",properties:{automation:{type:"string"},title:{type:"string"},body:{type:"string"},bucket:{type:"string",enum:["email","sms","social","estimate","invoice","review","other"]}},required:["title","body"]}},
+  {name:"log_done",description:"Log something you handled, for the owner's activity feed.",input_schema:{type:"object",properties:{summary:{type:"string"}},required:["summary"]}},
+  {name:"update_kpi",description:"Set a headline number on the Today screen.",input_schema:{type:"object",properties:{key:{type:"string",enum:["leads","invoices_chased","posts_ready","reviews"]},value:{type:"number"}},required:["key","value"]}}
+];
+function runTool(name,input){
+  const s=Store.state; input=input||{};
+  if(name==="get_profile") return {business:s.profile, mode:s.mode};
+  if(name==="list_data") return {items:(s.data[input.kind]||[])};
+  if(name==="add_draft"){ const d={id:"d"+Date.now()+Math.floor(Math.random()*9999),automation:input.automation||"Sophia",title:input.title,body:input.body,bucket:input.bucket||"other",status:"pending",when:Date.now()}; s.drafts.unshift(d); Store.save(); return {ok:true,id:d.id}; }
+  if(name==="log_done"){ s.done.unshift({id:"a"+Date.now()+Math.floor(Math.random()*999),summary:input.summary,when:Date.now()}); Store.save(); return {ok:true}; }
+  if(name==="update_kpi"){ s.kpi[input.key]=input.value; Store.save(); return {ok:true}; }
+  return {error:"unknown tool"};
+}
+async function sophiaRun(system, messages, onStep){
+  for(let i=0;i<8;i++){
+    const data=await anthropic({max_tokens:1600, system, tools:TOOLS, messages});
+    if(data.error) throw new Error(data.error.message||"API error");
+    messages.push({role:"assistant",content:data.content});
+    if(data.stop_reason==="tool_use"){
+      const results=[];
+      for(const b of data.content){ if(b.type==="tool_use"){ let out; try{ out=runTool(b.name,b.input); }catch(e){ out={error:String(e)}; } results.push({type:"tool_result",tool_use_id:b.id,content:JSON.stringify(out)}); } }
+      messages.push({role:"user",content:results});
+      if(onStep) onStep();
+    } else {
+      const t=(data.content.find(b=>b.type==="text")||{}).text||"";
+      return t;
+    }
+  }
+  return "Done — that took a few steps.";
+}
+const busy={};
+async function runAutomation(key){
+  const a=ALL_AUTOS[key];
+  if(!Store.state.apiKey){ toast("Add your Claude key in Setup, then Sophia can actually run this."); go("setup"); return; }
+  busy[key]=true; render();
+  const mode=Store.state.mode;
+  const sys=`You are Sophia, the AI operator for ${Store.state.profile.name}. You are running the "${a.name}" play in ${mode==="practice"?"PRACTICE mode on safe demo data (so the owner can rehearse)":"LIVE mode on the owner's real data"}. Do the actual work using your tools: first read what you need with list_data, then produce every finished output as a draft with add_draft (the owner approves before anything is sent), and log what you did with log_done. Write in the owner's voice — realistic, specific, ready to use. Produce 1–3 useful drafts. When finished, reply with ONE short friendly sentence about what you did.`;
+  try{
+    const text=await sophiaRun(sys,[{role:"user",content:`Run the ${a.name} play now.`}], ()=>render());
+    toast("✓ "+(text||(a.name+" done — see Today / Results.")));
+  }catch(e){ toast("Sophia hit a snag: "+e.message); }
+  busy[key]=false; render();
+}
+
+/* ============================ Actions ============================ */
+function setDial(key,val){ Store.state.dials[key]=val; Store.save(); render(); }
+function approveDraft(id){ const d=Store.state.drafts.find(x=>x.id===id); if(!d) return; d.status="approved"; Store.state.done.unshift({id:"a"+Date.now(),summary:"Approved: "+d.title,when:Date.now()}); Store.save(); toast(Store.state.mode==="practice"?"Approved (practice — nothing really sent).":"Approved."); render(); }
+function dismissDraft(id){ Store.state.drafts=Store.state.drafts.filter(x=>x.id!==id); Store.save(); render(); }
+function copyText(t){ if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>toast("Copied")); }
+function toggleTool(name){ Store.state.setup.tools[name]=!Store.state.setup.tools[name]; Store.save(); render(); }
+function setPluginInstalled(){ Store.state.setup.plugin=true; Store.save(); toast("Marked as installed. (Install the .plugin in the same Claude account you'll run plays in.)"); render(); }
+function saveKey(){ const v=document.getElementById("keyIn").value.trim(); if(!v){toast("Paste your Claude key first.");return;} Store.state.apiKey=v; Store.save(); toast(v.startsWith("sk-ant-")?"Key saved. Sophia can run now.":"Saved — but that doesn't look like an sk-ant- key."); render(); }
+function goLive(){ if(!confirm("Switch to LIVE mode and clear the practice data? Your practice drafts and demo customers will be wiped so you start clean on your real business.")) return; Store.state.mode="live"; Store.state.data={leads:[],invoices:[],reviews:[],emails:[],contacts:[]}; Store.state.drafts=[]; Store.state.done=[]; Store.state.kpi={leads:0,invoices_chased:0,posts_ready:0,reviews:0}; Store.save(); toast("You're LIVE. Practice data cleared — Sophia now works on your real business (with your connected tools)."); go("today"); }
+function backToPractice(){ Store.state.mode="practice"; Store.state.data=practiceSeed(); Store.state.drafts=[]; Store.state.done=[]; Store.state.kpi={leads:5,invoices_chased:0,posts_ready:0,reviews:2}; Store.save(); toast("Back in Practice mode with fresh demo data."); go("today"); }
+async function askSend(){
+  const inp=document.getElementById("askIn"); if(!inp) return; const q=inp.value.trim(); if(!q) return;
+  if(!Store.state.apiKey){ toast("Add your Claude key in Setup so Sophia can reply and act."); go("setup"); return; }
+  Store.state.chat.push({role:"user",content:q}); inp.value=""; Store.save(); render();
+  Store.state.chat.push({role:"assistant",content:"…thinking",_t:true}); render();
+  const sys=`You are Sophia, the AI operator for ${Store.state.profile.name}, in ${Store.state.mode} mode. Help the owner run their business. When they ask you to DO something, use your tools — read data with list_data and create outputs with add_draft (they approve before sending), and log_done. Keep replies short and friendly.`;
+  // build messages from chat history (exclude the thinking placeholder)
+  const hist=Store.state.chat.filter(m=>!m._t).map(m=>({role:m.role,content:m.content}));
+  try{ const t=await sophiaRun(sys,hist,()=>{}); Store.state.chat=Store.state.chat.filter(m=>!m._t); Store.state.chat.push({role:"assistant",content:t||"Done."}); }
+  catch(e){ Store.state.chat=Store.state.chat.filter(m=>!m._t); Store.state.chat.push({role:"assistant",content:"Sorry — "+e.message}); }
+  Store.save(); render();
+}
+
+/* ============================ Render ============================ */
+function esc(x){ return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+let page="today";
+function go(p){ page=p; document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("on",n.dataset.s===p)); render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; }
+function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.style.display="block"; clearTimeout(window._tt); window._tt=setTimeout(()=>el.style.display="none",4200); }
+
+function render(){
+  const s=Store.state;
+  document.getElementById("modepill").className="modepill "+(s.mode==="practice"?"mode-practice":"mode-live");
+  document.getElementById("modepill").textContent=(s.mode==="practice"?"PRACTICE MODE":"LIVE MODE");
+  const main=document.getElementById("main");
+  if(page==="today") main.innerHTML=renderToday();
+  else if(page==="auto") main.innerHTML=renderAuto();
+  else if(page==="results") main.innerHTML=renderResults();
+  else if(page==="setup") main.innerHTML=renderSetup();
+  const c=document.getElementById("chatBox"); if(c) c.scrollTop=c.scrollHeight;
+}
+function renderToday(){
+  const s=Store.state; const pend=s.drafts.filter(d=>d.status==="pending");
+  const practiceBanner = s.mode==="practice"
+    ? `<div class="card" style="background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.35)"><b style="color:#FCD34D">You're in Practice mode.</b> <span style="color:var(--mut);font-size:13px">Everything here is safe demo data — run automations, approve things, get comfortable. When you're ready, go to <span class="copy" onclick="go('setup')">Setup → Go live</span> to clear it and work on your real business.</span></div>` : "";
+  return `
+    <div class="ph"><div><h1>Good morning${s.profile.name?", "+esc(s.profile.name.split(" ")[0]):""}</h1><div class="s">Here's what needs you, and what Sophia handled.</div></div></div>
+    ${practiceBanner}
+    <div class="kpis">
+      <div class="kpi"><div class="l">New leads</div><div class="v">${s.kpi.leads}</div></div>
+      <div class="kpi"><div class="l">Invoices chased</div><div class="v">${s.kpi.invoices_chased}</div></div>
+      <div class="kpi"><div class="l">Posts ready</div><div class="v">${s.kpi.posts_ready}</div></div>
+      <div class="kpi"><div class="l">Reviews to answer</div><div class="v">${s.kpi.reviews}</div></div>
+    </div>
+    <div class="card">
+      <div class="arow" style="margin-bottom:4px"><h3>✍️ Needs your approval <span class="badge b-a">${pend.length}</span></h3><span style="color:var(--mut);font-size:12px">Sophia drafts — nothing sends without you</span></div>
+      ${pend.length? pend.map(d=>`<div class="rowi"><div style="min-width:0"><div class="t">${esc(d.title)}</div><div class="d">${esc(d.automation)} · ${esc(d.bucket)}</div></div><div style="display:flex;gap:6px"><button class="btn g sm" onclick="copyText(${JSON.stringify(d.body).replace(/"/g,'&quot;')})">Copy</button><button class="btn p sm" onclick="approveDraft('${d.id}')">Approve</button></div></div>`).join("")
+        : `<div style="color:var(--mut);font-size:13px;padding:8px 0">Nothing waiting. Run an automation and Sophia's drafts show up here.</div>`}
+    </div>
+    <div class="card">
+      <h3>✓ Sophia handled</h3>
+      ${s.done.length? s.done.slice(0,8).map(a=>`<div class="rowi"><div class="t">${esc(a.summary)}</div><span class="badge b-g">done</span></div>`).join("")
+        : `<div style="color:var(--mut);font-size:13px;padding:8px 0">Nothing yet today.</div>`}
+    </div>
+    <div class="card">
+      <h3>💬 Ask Sophia</h3>
+      <div class="chat" id="chatBox">${s.chat.length? s.chat.map(m=>`<div class="msg ${m.role==='user'?'u':'b'}">${m._t?'<span class=busy></span> thinking…':esc(m.content).replace(/\n/g,'<br>')}</div>`).join("") : '<div style="color:var(--mut);font-size:13px">Ask her anything — "chase my overdue invoices", "draft replies to my reviews". She\'ll do it and it shows up above.</div>'}</div>
+      <div style="display:flex;gap:8px"><input class="inp" id="askIn" placeholder="Tell Sophia what to do…" onkeydown="if(event.key==='Enter')askSend()"><button class="btn p" onclick="askSend()">Send</button></div>
+    </div>`;
+}
+function renderAuto(){
+  const s=Store.state;
+  return `
+    <div class="ph"><div><h1>Automations</h1><div class="s">Tap <b>Run</b> and Sophia does it now — set each one to Ask me, Draft, or Auto.</div></div><button class="btn g" onclick="go('results')">See Results →</button></div>
+    <div class="strip"><div><b>You're on: Business in a Box${s.mode==='practice'?' · Practice':''}</b><div style="color:var(--mut);font-size:13px;margin-top:2px">You tap Run, Sophia works, results land in Today &amp; Results. <b style="color:#A7F3D0">Hosted</b> runs them all automatically, 24/7.</div></div><a class="btn up sm" style="width:auto" href="index.html">Upgrade to Hosted →</a></div>
+    ${!s.apiKey?`<div class="card" style="background:rgba(34,211,238,.06);border-color:rgba(34,211,238,.3)"><b>One thing first:</b> <span style="color:var(--mut);font-size:13px">add your Claude key in <span class="copy" onclick="go('setup')">Setup</span> so Sophia can actually run these. Until then Run will point you there.</span></div>`:""}
+    ${GROUPS.map(g=>`<div class="grpttl">${g.title}</div><div class="grid3">${g.items.map(a=>autoCard(a)).join("")}</div>`).join("")}
+  `;
+}
+function autoCard(a){
+  const d=dialOf(a.key); const isBusy=busy[a.key];
+  const pill=a.ready?`<span class="badge b-g">Ready</span>`:`<span class="badge b-c">Best w/ ${esc(a.need)}</span>`;
+  return `<div class="acard">
+    <div class="top"><div style="display:flex;gap:10px;align-items:center"><div class="ic">${a.ic}</div><div class="nm">${esc(a.name)}</div></div>${pill}</div>
+    <p>${esc(a.desc)}</p>
+    <div class="dial">
+      <span class="${d==='ask'?'on':''}" onclick="setDial('${a.key}','ask')">Ask me</span>
+      <span class="${d==='draft'?'on':''}" onclick="setDial('${a.key}','draft')">Draft</span>
+      <span class="${d==='auto'?'on':''}" onclick="setDial('${a.key}','auto')">Auto</span>
+    </div>
+    <div class="arow">
+      <button class="btn p sm" ${isBusy?'disabled':''} onclick="runAutomation('${a.key}')">${isBusy?'<span class=busy></span> Working…':'▶ Run now'}</button>
+      <span style="color:var(--cy);font-size:11px;cursor:pointer" onclick="toast('On Hosted Sophia this runs automatically, 24/7.')">Auto on Hosted →</span>
+    </div>
+  </div>`;
+}
+function renderResults(){
+  const s=Store.state; const all=s.drafts;
+  return `
+    <div class="ph"><div><h1>Results</h1><div class="s">Everything Sophia made — approve it, copy it, use it.</div></div></div>
+    <div class="card">
+      <h3>Everything Sophia made <span class="badge b-c">${all.length}</span></h3>
+      ${all.length? all.map(d=>`<div class="rowi"><div style="min-width:0"><div class="t">${esc(d.title)}</div><div class="d">${esc(d.bucket)} · ${esc(d.automation)}</div><div style="color:#A0A9C5;font-size:12px;margin-top:5px;white-space:pre-wrap;max-width:760px">${esc((d.body||"").slice(0,240))}${(d.body||"").length>240?"…":""}</div></div><div style="display:flex;gap:6px;align-items:flex-start">${d.status==='pending'?`<span class="badge b-a">needs approval</span><button class="btn p sm" onclick="approveDraft('${d.id}')">Approve</button>`:`<span class="badge b-g">approved</span>`}<button class="btn g sm" onclick="copyText(${JSON.stringify(d.body).replace(/"/g,'&quot;')})">Copy</button></div></div>`).join("")
+        : `<div style="color:var(--mut);font-size:13px;padding:10px 0">Nothing yet. Run an automation on the <span class="copy" onclick="go('auto')">Automations</span> screen and Sophia's work shows up here.</div>`}
+    </div>`;
+}
+function renderSetup(){
+  const s=Store.state; const t=s.setup.tools;
+  const tool=(n)=>`<div class="chip">${n} ${t[n]?'<span class="badge b-g">Connected</span>':'<span class="act" onclick="toggleTool(\''+n+'\')">Connect</span>'}</div>`;
+  return `
+    <div class="ph"><div><h1>Set up Sophia</h1><div class="s">Do these once. This is what turns the cockpit into your real business engine.</div></div></div>
+    <div class="step"><div class="num ${s.setup.plugin?'done':''}">${s.setup.plugin?'✓':'1'}</div><div style="flex:1"><b>1 · Install the Sophia Workspace Plugin</b><p>This gives Sophia her plays. Install it in the same Claude account you'll run plays in.</p>${s.setup.plugin?'<span class="badge b-g">Installed</span> <span class="copy" onclick="Store.state.setup.plugin=false;Store.save();render()">mark not installed</span>':'<button class="btn g sm" onclick="setPluginInstalled()">I\'ve installed it ✓</button>'}</div></div>
+    <div class="step"><div class="num">2</div><div style="flex:1"><b>2 · Connect your tools (your MCP connectors)</b><p>Each tool you connect lets Sophia work on your <b>real</b> business — and unlocks more plays. Connect what you use; skip the rest.</p><div class="conn">${["QuickBooks","Gmail","Instagram","Stripe","HubSpot","Calendar"].map(tool).join("")}</div></div></div>
+    <div class="step"><div class="num">3</div><div style="flex:1"><b>3 · Give Sophia her brain — your Claude key</b><p>The cockpit talks to Claude with your key (stays in your browser, never sent anywhere but Anthropic). This is what lets Sophia actually run the plays here.</p><div style="display:flex;gap:8px;max-width:560px"><input class="inp" id="keyIn" type="password" placeholder="sk-ant-…" value="${s.apiKey?'':''}"><button class="btn p" onclick="saveKey()">Save</button></div>${s.apiKey?'<div style="color:#6EE7B7;font-size:12px;margin-top:6px">✓ Key saved — Sophia can run.</div>':''}</div></div>
+    <div class="step"><div class="num">4</div><div style="flex:1"><b>4 · Teach Sophia your business</b><p>Hand Sophia your business once — she learns your name, prices, and voice and remembers it for every play.</p><button class="btn g sm" onclick="toast('In the Box, run Setup with Sophia in Claude (paste your Export my setup). Here in practice, she already knows the demo business.')">How this works</button></div></div>
+
+    <div class="card" style="background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(34,211,238,.06));border-color:rgba(251,191,36,.3)">
+      <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>${s.mode==='practice'?'Practice mode — rehearse safely':'Live mode — real business'}</b><div style="color:var(--mut);font-size:13px;margin-top:3px">${s.mode==='practice'?'You\'re on safe demo data. Practice running plays and approving. When you\'re ready, clear it and go live on your real business.':'You\'re working on your real business. You can drop back to Practice anytime with fresh demo data.'}</div></div>${s.mode==='practice'?'<button class="btn p" onclick="goLive()">Clear practice &amp; go live →</button>':'<button class="btn g" onclick="backToPractice()">Back to practice</button>'}</div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,rgba(124,92,255,.16),rgba(34,211,238,.14));border-color:rgba(124,92,255,.4)">
+      <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>Your plan: Business in a Box</b><div style="color:#cdd6f0;font-size:13px;margin-top:3px">You run plays with your connected tools. Upgrade when you want Sophia to run them for you, 24/7.</div></div><a class="btn up sm" style="width:auto" href="index.html">Upgrade to Hosted Sophia →</a></div>
+    </div>`;
+}
+
+Store.load(); go("today");
+</script>
+</body></html>
