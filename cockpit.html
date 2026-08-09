@@ -110,6 +110,14 @@ textarea.inp{min-height:70px;resize:vertical}
 .chk .k{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none}
 .chk .k.y{background:rgba(52,211,153,.18);color:#6EE7B7}
 .chk .k.n{background:var(--panel2);color:var(--mut);border:1px solid var(--line)}
+.aitem{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.aitem:hover{border-color:rgba(34,211,238,.45)}
+.aitem .ic{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4F7CFF,#22D3EE);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex:none}
+.aitem .nm{font-weight:700;font-size:14.5px}
+.aitem .ad{color:var(--mut);font-size:12.5px;margin-top:2px}
+.aitem .chev{color:var(--mut);font-size:24px;flex:none;line-height:1}
+.lstep{display:flex;gap:11px;align-items:flex-start;margin-bottom:10px;font-size:13.5px;line-height:1.5;color:#C7D0EA}
+.lstep .ln{width:24px;height:24px;flex:none;border-radius:50%;background:rgba(34,211,238,.14);color:#7DD3FC;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:1px}
 @media(max-width:680px){.wzcard{padding:17px}}
 </style></head>
 <body>
@@ -252,6 +260,7 @@ async function sophiaRun(system, messages, onStep){
   return "Done — that took a few steps.";
 }
 const busy={};
+let autoOpen=null;
 async function runAutomation(key){
   const a=ALL_AUTOS[key];
   if(!Store.state.apiKey){ toast("Add your Claude key in Setup, then Sophia can actually run this."); go("setup"); return; }
@@ -260,7 +269,8 @@ async function runAutomation(key){
   const sys=`You are Sophia, the AI operator for ${Store.state.profile.name}. You are running the "${a.name}" play in ${mode==="practice"?"PRACTICE mode on safe demo data (so the owner can rehearse)":"LIVE mode on the owner's real data"}. Do the actual work using your tools: first read what you need with list_data, then produce every finished output as a draft with add_draft (the owner approves before anything is sent), and log what you did with log_done. Write in the owner's voice — realistic, specific, ready to use. Produce 1–3 useful drafts. When finished, reply with ONE short friendly sentence about what you did.`;
   try{
     const text=await sophiaRun(sys,[{role:"user",content:`Run the ${a.name} play now.`}], ()=>render());
-    toast("✓ "+(text||(a.name+" done — see Today / Results.")));
+    busy[key]=false; autoOpen=null; toast("✓ "+(text||(a.name+" is done — here's what Sophia made.")));
+    go('results'); return;
   }catch(e){ toast("Sophia hit a snag: "+e.message); }
   busy[key]=false; render();
 }
@@ -373,30 +383,64 @@ function renderToday(){
 }
 function renderAuto(){
   const s=Store.state;
+  if(autoOpen && ALL_AUTOS[autoOpen]) return renderAutoDetail(ALL_AUTOS[autoOpen]);
   return `
-    <div class="ph"><div><h1>Automations</h1><div class="s">Tap <b>Run</b> and Sophia does it now — set each one to Ask me, Draft, or Auto.</div></div><button class="btn g" onclick="go('results')">See Results →</button></div>
-    <div class="strip"><div><b>You're on: Business in a Box${s.mode==='practice'?' · Practice':''}</b><div style="color:var(--mut);font-size:13px;margin-top:2px">You tap Run, Sophia works, results land in Today &amp; Results. <b style="color:#A7F3D0">Hosted</b> runs them all automatically, 24/7.</div></div><a class="btn up sm" style="width:auto" href="index.html">Upgrade to Hosted →</a></div>
-    ${!s.apiKey?`<div class="card" style="background:rgba(34,211,238,.06);border-color:rgba(34,211,238,.3)"><b>One thing first:</b> <span style="color:var(--mut);font-size:13px">add your Claude key in <span class="copy" onclick="go('setup')">Setup</span> so Sophia can actually run these. Until then Run will point you there.</span></div>`:""}
-    ${GROUPS.map(g=>`<div class="grpttl">${g.title}</div><div class="grid3">${g.items.map(a=>autoCard(a)).join("")}</div>`).join("")}
+    <div class="ph"><div><h1>Automations</h1><div class="s">These are Sophia's jobs. Tap one to learn exactly what it does — then run it.</div></div></div>
+    ${!s.apiKey?`<div class="card" style="background:rgba(34,211,238,.06);border-color:rgba(34,211,238,.3)"><b>Heads up:</b> <span style="color:var(--mut);font-size:13px">these run for real once you add your Claude key in <span class="copy" onclick="go('setup')">Setup</span>. You can still open any job to learn what it does.</span></div>`:``}
+    ${GROUPS.map(g=>`<div class="grpttl">${g.title}</div>${g.items.map(a=>autoRow(a)).join("")}`).join("")}
+    <div class="wzhelp" style="margin-top:14px"><a onclick="go('results')">See what Sophia has made → Results</a></div>
   `;
 }
-function autoCard(a){
-  const d=dialOf(a.key); const isBusy=busy[a.key];
-  const pill=a.ready?`<span class="badge b-g">Ready</span>`:`<span class="badge b-c">Best w/ ${esc(a.need)}</span>`;
-  return `<div class="acard">
-    <div class="top"><div style="display:flex;gap:10px;align-items:center"><div class="ic">${a.ic}</div><div class="nm">${esc(a.name)}</div></div>${pill}</div>
-    <p>${esc(a.desc)}</p>
-    <div class="dial">
-      <span class="${d==='ask'?'on':''}" onclick="setDial('${a.key}','ask')">Ask me</span>
-      <span class="${d==='draft'?'on':''}" onclick="setDial('${a.key}','draft')">Draft</span>
-      <span class="${d==='auto'?'on':''}" onclick="setDial('${a.key}','auto')">Auto</span>
-    </div>
-    <div class="arow">
-      <button class="btn p sm" ${isBusy?'disabled':''} onclick="runAutomation('${a.key}')">${isBusy?'<span class=busy></span> Working…':'▶ Run now'}</button>
-      <span style="color:var(--cy);font-size:11px;cursor:pointer" onclick="toast('On Hosted Sophia this runs automatically, 24/7.')">Auto on Hosted →</span>
-    </div>
-  </div>`;
+function autoRow(a){
+  const pill=a.ready?`<span class="badge b-g">Ready now</span>`:`<span class="badge b-c">Best w/ ${esc(a.need)}</span>`;
+  return `<div class="aitem" onclick="openAuto('${a.key}')"><div class="ic">${a.ic}</div><div style="flex:1;min-width:0"><div class="nm">${esc(a.name)}</div><div class="ad">${esc(a.desc)}</div></div>${pill}<span class="chev">›</span></div>`;
 }
+function srcLabel(src){ return {leads:"missed calls and messages",reviews:"reviews",emails:"inbox",invoices:"invoices and payments",contacts:"contacts and deals"}[src]||"business details"; }
+const AUTO_EX={
+  phone:"a friendly text-back to each missed call, ready to send",
+  dms:"a reply to each after-hours DM, written in your voice",
+  calllist:"your top 5 calls for today, with what to say on each",
+  reviews:"a reply to every review, plus a nudge for more",
+  content:"a full week of social posts from a short brief",
+  email:"a drafted reply to each customer email",
+  templates:"reusable messages — quotes, reminders, review asks",
+  invoice:"a polite reminder for each overdue invoice",
+  money:"a plain-English recap of your month + the one thing to do",
+  crm:"stale deals revived or closed, and duplicates merged",
+  contract:"a plain-English read of what you're about to sign"
+};
+function renderAutoDetail(a){
+  const s=Store.state; const d=dialOf(a.key); const isBusy=busy[a.key];
+  const need=a.ready
+    ? `<div class="wzok" style="margin-top:0">✓ Works right now — nothing to connect first.</div>`
+    : `<div class="wzhint">Works best with <b>${esc(a.need)}</b> connected. You can still run it in Practice — connect ${esc(a.need)} in <span class="copy" onclick="go('setup')">Setup</span> for real results.</div>`;
+  const dialNote = d==='ask' ? '<b>Ask me:</b> Sophia checks with you before she starts.'
+    : d==='draft' ? '<b>Draft:</b> Sophia prepares everything and leaves it in Results for your OK.'
+    : '<b>Auto:</b> Sophia does it and just logs it — this is how Hosted Sophia runs 24/7.';
+  return `
+    <div class="ph"><div><div class="wzhelp" style="text-align:left;margin:0 0 8px"><a onclick="closeAuto()">← All automations</a></div><h1>${a.ic} ${esc(a.name)}</h1></div></div>
+    <div class="wzcard">
+      <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);font-weight:700">What it does</div>
+      <div style="font-size:15px;margin:6px 0 6px">${esc(a.desc)}</div>
+      <div class="wzhint" style="margin-top:0"><b>You'll get:</b> ${esc(AUTO_EX[a.key]||"ready-to-use drafts in your voice")}.</div>
+      <div style="height:1px;background:var(--line);margin:16px 0"></div>
+      <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);font-weight:700;margin-bottom:10px">How Sophia runs it</div>
+      <div class="lstep"><span class="ln">1</span><div><b>Reads your ${srcLabel(a.src)}</b> — ${s.mode==='practice'?'safe demo data for now.':'your real business data.'}</div></div>
+      <div class="lstep"><span class="ln">2</span><div><b>Does the work</b> and writes it up in your voice — realistic and ready to use.</div></div>
+      <div class="lstep"><span class="ln">3</span><div><b>Waits in Results for your OK.</b> Nothing is sent, posted, or paid without you.</div></div>
+      <div style="height:1px;background:var(--line);margin:16px 0"></div>
+      <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);font-weight:700;margin-bottom:8px">How much should Sophia do?</div>
+      <div class="dial" style="max-width:340px"><span class="${d==='ask'?'on':''}" onclick="setDial('${a.key}','ask')">Ask me</span><span class="${d==='draft'?'on':''}" onclick="setDial('${a.key}','draft')">Draft</span><span class="${d==='auto'?'on':''}" onclick="setDial('${a.key}','auto')">Auto</span></div>
+      <div class="wzhint" style="margin-top:8px">${dialNote}</div>
+      ${need}
+      <div class="wnav" style="margin-top:18px"><button class="btn g sm" onclick="closeAuto()">← Back</button><button class="btn p" ${isBusy?'disabled':''} onclick="runAutomation('${a.key}')">${isBusy?'<span class="busy"></span> Sophia is working…':'▶ Run it now'}</button></div>
+    </div>
+    <div class="wzhelp"><a onclick="toast('On Hosted Sophia this runs automatically, 24/7 — you never tap Run.')">Want this to run on its own? →</a></div>
+  `;
+}
+function openAuto(key){ autoOpen=key; render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; window.scrollTo(0,0); }
+function closeAuto(){ autoOpen=null; render(); window.scrollTo(0,0); }
+
 function renderResults(){
   const s=Store.state; const all=s.drafts;
   return `
