@@ -261,6 +261,7 @@ async function sophiaRun(system, messages, onStep){
 }
 const busy={};
 let autoOpen=null;
+let runOpen=null;
 async function runAutomation(key){
   const a=ALL_AUTOS[key];
   if(!Store.state.apiKey){ toast("Add your Claude key in Setup, then Sophia can actually run this."); go("setup"); return; }
@@ -383,6 +384,7 @@ function renderToday(){
 }
 function renderAuto(){
   const s=Store.state;
+  if(runOpen && ALL_AUTOS[runOpen]) return renderRunPanel(ALL_AUTOS[runOpen]);
   if(autoOpen && ALL_AUTOS[autoOpen]) return renderAutoDetail(ALL_AUTOS[autoOpen]);
   return `
     <div class="ph"><div><h1>Automations</h1><div class="s">These are Sophia's jobs. Tap one to learn exactly what it does — then run it.</div></div></div>
@@ -433,13 +435,49 @@ function renderAutoDetail(a){
       <div class="dial" style="max-width:340px"><span class="${d==='ask'?'on':''}" onclick="setDial('${a.key}','ask')">Ask me</span><span class="${d==='draft'?'on':''}" onclick="setDial('${a.key}','draft')">Draft</span><span class="${d==='auto'?'on':''}" onclick="setDial('${a.key}','auto')">Auto</span></div>
       <div class="wzhint" style="margin-top:8px">${dialNote}</div>
       ${need}
-      <div class="wnav" style="margin-top:18px"><button class="btn g sm" onclick="closeAuto()">← Back</button><button class="btn p" ${isBusy?'disabled':''} onclick="runAutomation('${a.key}')">${isBusy?'<span class="busy"></span> Sophia is working…':'▶ Run it now'}</button></div>
+      <div class="wnav" style="margin-top:18px"><button class="btn g sm" onclick="closeAuto()">← Back</button><button class="btn p" onclick="openRun('${a.key}')">Run in Claude →</button></div>${s.mode==='practice'?`<div class="wzhelp" style="margin-top:4px"><a onclick="runAutomation('${a.key}')">${isBusy?'Practicing on demo data…':'New to this? Practice on demo data first →'}</a></div>`:``}
     </div>
     <div class="wzhelp"><a onclick="toast('On Hosted Sophia this runs automatically, 24/7 — you never tap Run.')">Want this to run on its own? →</a></div>
   `;
 }
 function openAuto(key){ autoOpen=key; render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; window.scrollTo(0,0); }
 function closeAuto(){ autoOpen=null; render(); window.scrollTo(0,0); }
+/* ===== Run-in-Claude wiring: copy a prompt out, paste Sophia's receipt back ===== */
+const RUN_BUCKET={phone:'sms',dms:'sms',calllist:'other',reviews:'review',content:'social',email:'email',templates:'other',invoice:'invoice',money:'other',crm:'other',contract:'other'};
+function promptFor(key){
+  const a=ALL_AUTOS[key]||{name:'this play',desc:''}; const bucket=RUN_BUCKET[key]||'other';
+  return 'Sophia — run my "'+a.name+'" play on my real business.\n\n'
+    +(a.desc||'')+'\nUse my connected tools. Draft everything for my approval — do not send, post, or pay anything.\n\n'
+    +'When you finish, end your reply with ONLY this results block, filled in, inside a ```json code fence so my cockpit can read it:\n'
+    +'```json\n{\n  "play": "'+a.name+'",\n  "outputs": [ { "bucket": "'+bucket+'", "title": "short label", "body": "the finished draft, ready to use" } ],\n  "kpi": {},\n  "done": ["one line on what you did"]\n}\n```';
+}
+function openRun(key){ runOpen=key; autoOpen=key; render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; window.scrollTo(0,0); try{ if(navigator.clipboard) navigator.clipboard.writeText(promptFor(key)); }catch(e){} }
+function closeRun(){ runOpen=null; render(); window.scrollTo(0,0); }
+function copyPromptRun(){ const p=promptFor(runOpen); if(navigator.clipboard){ navigator.clipboard.writeText(p).then(function(){toast("Copied — now paste it into your Sophia chat.");},function(){toast("Couldn't copy — select the text in the box and copy it manually.");}); } else { toast("Select the text in the box and copy it manually."); } }
+function ingestReceipt(){
+  const el=document.getElementById("rcpt"); const raw=el?el.value:"";
+  if(!raw.trim()){ toast("Paste Sophia's whole reply first."); return; }
+  let obj=null; const cands=[]; const m=raw.match(/```json\s*([\s\S]*?)```/i)||raw.match(/```\s*([\s\S]*?)```/); if(m) cands.push(m[1]); const br=raw.match(/\{[\s\S]*\}/); if(br) cands.push(br[0]);
+  for(let i=0;i<cands.length;i++){ try{ obj=JSON.parse(cands[i]); break; }catch(e){} }
+  if(!obj||!Array.isArray(obj.outputs)){ toast("Couldn't find Sophia's results block. Copy her WHOLE reply (including the code block at the end) and paste it again."); return; }
+  const nm=(ALL_AUTOS[runOpen]&&ALL_AUTOS[runOpen].name)||obj.play||"Sophia"; let added=0;
+  obj.outputs.forEach(function(o){ if(!o||(!o.title&&!o.body)) return; Store.state.drafts.unshift({id:"d"+Date.now()+Math.floor(Math.random()*9999),automation:obj.play||nm,title:o.title||"(untitled)",body:o.body||"",bucket:o.bucket||"other",status:"pending",when:Date.now()}); added++; });
+  if(obj.kpi&&typeof obj.kpi==="object"){ Object.keys(obj.kpi).forEach(function(k){ if(k in Store.state.kpi && typeof obj.kpi[k]==="number") Store.state.kpi[k]=obj.kpi[k]; }); }
+  if(Array.isArray(obj.done)) obj.done.forEach(function(d){ if(d) Store.state.done.unshift({id:"a"+Date.now()+Math.floor(Math.random()*999),summary:String(d),when:Date.now()}); });
+  Store.save(); runOpen=null; autoOpen=null;
+  toast(added?("✓ Loaded "+added+" item"+(added===1?"":"s")+" from Sophia into Results."):"Loaded Sophia's update.");
+  go("results");
+}
+function renderRunPanel(a){
+  const prompt=promptFor(a.key);
+  return `
+    <div class="ph"><div><div class="wzhelp" style="text-align:left;margin:0 0 8px"><a onclick="closeRun()">← Back to ${esc(a.name)}</a></div><h1>Run ${a.ic} ${esc(a.name)} in Claude</h1><div class="s">Three quick steps. Sophia does the real work in Claude — your results come back here.</div></div></div>
+    <div class="wzcard"><div class="lstep"><span class="ln">1</span><div style="flex:1"><b>Copy this message</b><div class="wzhint" style="margin:4px 0 8px">It's already on your clipboard — or tap Copy again.</div><textarea class="inp" id="promptBox" readonly style="min-height:134px;font-size:12.5px">${esc(prompt)}</textarea><div style="margin-top:8px"><button class="btn p sm" onclick="copyPromptRun()">📋 Copy again</button></div></div></div></div>
+    <div class="wzcard"><div class="lstep"><span class="ln">2</span><div style="flex:1"><b>Paste it into your pinned Sophia chat</b><div class="wzhint" style="margin:4px 0 8px">Open the Claude chat where your Sophia plugin and tools live — the one you pinned in Setup. Paste it, send, and let her work. She finishes with a results block.</div><a class="btn g sm" style="width:auto" href="https://claude.ai/" target="_blank" rel="noopener">Open Claude ↗</a> &nbsp;<span class="wzhint" style="display:inline">Not pinned yet? <span class="copy" onclick="go('setup')">Set it up →</span></span></div></div></div>
+    <div class="wzcard"><div class="lstep"><span class="ln">3</span><div style="flex:1"><b>Paste Sophia's reply back here</b><div class="wzhint" style="margin:4px 0 8px">Copy her whole reply (including the block at the end) and paste it below.</div><textarea class="inp" id="rcpt" placeholder="Paste Sophia's whole reply here…" style="min-height:120px"></textarea><div class="wnav" style="margin-top:12px"><button class="btn g sm" onclick="closeRun()">← Back</button><button class="btn p" onclick="ingestReceipt()">Show my results →</button></div></div></div></div>
+  `;
+}
+
 
 function renderResults(){
   const s=Store.state; const all=s.drafts;
@@ -477,7 +515,7 @@ function renderSetup(){
 
   const META={
    1:{ic:'🔑',t:'Turn on your Suite',sub:"Paste the key from your welcome email so your Suite unlocks. No key yet? Skip it — you can still explore in Practice."},
-   2:{ic:'🧩',t:"Add Sophia's playbook",sub:"Install the Sophia plugin in your Claude app. It's what gives Sophia the ready-made jobs she runs for you."},
+   2:{ic:'🧩',t:"Set up & pin your Sophia chat",sub:"In your Claude app: turn on the Sophia plugin, connect your tools, then PIN that chat. It's Sophia's home — every play you run gets pasted there."},
    3:{ic:'🔌',t:'Connect your apps',sub:"Turn on the apps you already use so Sophia can work in them. Skip any you don't use — you can add more anytime."},
    4:{ic:'🧠',t:'Give Sophia her brain',sub:"Your Claude key is what lets Sophia think and do the work. It stays in your browser — we never see it. We'll test it the moment you save."},
    5:{ic:'🏪',t:'Teach Sophia your business',sub:"Answer a few quick questions once (over in your Claude app) so Sophia knows your name, your prices, and your voice."}
@@ -491,8 +529,8 @@ function renderSetup(){
       : `<div style="display:flex;gap:8px;flex-wrap:wrap"><input class="inp" id="licIn" type="password" placeholder="Paste your license key" style="flex:1;min-width:180px"><button class="btn p" onclick="saveLicense()">Turn it on</button></div>${s.license.key?`<div class="wzhint" style="color:#FCD34D">Status: ${esc(s.license.status||'checking…')} — Practice mode still works. <span class="copy" onclick="verifyLicense()">re-check</span></div>`:`<div class="wzhint">Your license key was in your welcome email. <b>No key?</b> That's fine — skip this and explore in Practice.</div>`}`;
   } else if(step===2){
     body = s.setup.plugin
-      ? `<div class="wzok">✓ Playbook installed. <span class="copy" onclick="Store.state.setup.plugin=false;Store.save();render()">undo</span></div>`
-      : `<button class="btn p" onclick="setPluginInstalled()">I've installed it ✓</button><div class="wzhint"><b>What's a plugin?</b> A one-time add-on for the Claude app that teaches Sophia your business jobs. Get it from your welcome email, install it in Claude, then tap the button.</div>`;
+      ? `<div class="wzok">✓ Sophia chat set up &amp; pinned. <span class="copy" onclick="Store.state.setup.plugin=false;Store.save();render()">undo</span></div>`
+      : `<a class="btn g sm" style="width:auto" href="https://claude.ai/" target="_blank" rel="noopener">Open Claude ↗</a> <button class="btn p sm" onclick="setPluginInstalled()">Done — it's pinned ✓</button><div class="wzhint" style="margin-top:8px"><b>Do this once, in Claude:</b><br>1. Install the Sophia plugin (the link is in your welcome email).<br>2. Start a chat and connect your tools.<br>3. <b>Pin that chat</b> so it's always one tap away — it's where you'll paste every play.</div>`;
   } else if(step===3){
     body = `<div class="conn">${["QuickBooks","Gmail","Instagram","Stripe","HubSpot","Calendar"].map(tool).join("")}</div><div class="wzhint">${connCount} of 6 connected. <b>These are your apps</b> — connecting one lets Sophia read and draft inside it. Connect what you use, skip the rest.</div>`;
   } else if(step===4){
