@@ -130,7 +130,7 @@ textarea.inp{min-height:70px;resize:vertical}
     <div class="nav" data-s="auto" onclick="go('auto')"><span class="i">▶</span> Automations</div>
     <div class="nav" data-s="results" onclick="go('results')"><span class="i">📥</span> Results</div>
     <div class="nav" data-s="setup" onclick="go('setup')"><span class="i">⚙</span> Setup</div>
-    <div class="up"><b>Business in a Box</b><p>You run the plays, Sophia does the work. Ready for hands‑off?</p><a class="btn up sm" href="https://joolt.io/agent-rep" target="_blank" rel="noopener">Upgrade to Hosted →</a></div>
+    <div class="up"><b>Business in a Box</b><p>You run the plays, Sophia does the work. Ready for hands‑off?</p><a class="btn up sm" href="https://joolt.io/talk-to-us" target="_blank" rel="noopener">Upgrade to Hosted →</a></div>
   </div>
   <div class="main" id="main"></div>
 </div>
@@ -458,18 +458,19 @@ function renderSetup(){
   const done=[null, s.license.valid, s.setup.plugin, connCount>0, s.setup.keyOk===true, !!s.setup.taught];
   const doneCount=done.slice(1).filter(Boolean).length;
   let step=s.setup.step||1; if(step<1)step=1; if(step>6)step=6;
-  const help=`<div class="wzhelp">Rather have us do it? <a href="https://buy.stripe.com/7sYaEQc2l8lHadCafxcbC12" target="_blank" rel="noopener">Done-for-you $199</a> · <a href="https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L" target="_blank" rel="noopener">Full concierge $750</a><br><a onclick="go('today')">Just exploring? Look around in Practice →</a>${step<6?` &nbsp;·&nbsp; <a onclick="setWiz(6)">Skip to the finish →</a>`:``}</div>`;
+  const help=`<div class="wzhelp"><a href="https://joolt.io/agent-rep" target="_blank" rel="noopener">🎁 Create your free JOOLT Agent Rep →</a><br>Rather have us do it? <a href="https://buy.stripe.com/7sYaEQc2l8lHadCafxcbC12" target="_blank" rel="noopener">Done-for-you $199</a> · <a href="https://buy.stripe.com/28E14gaYh1XjdpOdrJcbC0L" target="_blank" rel="noopener">Full concierge $750</a><br><a onclick="go('today')">Just exploring? Look around in Practice →</a>${step<6?` &nbsp;·&nbsp; <a onclick="setWiz(6)">Skip to the finish →</a>`:``}</div>`;
 
   if(step>=6){
     const row=(i,label)=>`<div class="chk"><div class="k ${done[i]?'y':'n'}">${done[i]?'✓':i}</div><div style="flex:1"><b style="font-size:14px">${label}</b></div>${done[i]?'<span class="badge b-g">Done</span>':`<span class="copy" onclick="setWiz(${i})">Finish →</span>`}</div>`;
     return `
     <div class="ph"><div><h1>${doneCount===5?"You're all set 🎉":'Your setup'}</h1><div class="s">${doneCount===5?"Sophia's ready to work. You can change anything anytime.":doneCount+" of 5 done — finish the rest whenever you like."}</div></div></div>
     <div class="card">${row(1,'Suite turned on')}${row(2,"Sophia's playbook installed")}${row(3,'Apps connected')}${row(4,'Claude key working')}${row(5,'Business details taught')}</div>
+    <div class="card" style="background:linear-gradient(135deg,rgba(251,146,60,.12),rgba(244,63,94,.08));border-color:rgba(251,146,60,.35)"><div class="arow" style="flex-wrap:wrap;gap:10px"><div style="flex:1;min-width:220px"><b>🎁 Your free JOOLT Agent Rep</b><div style="color:var(--mut);font-size:13px;margin-top:3px">A JOOLT specialist that pairs with Sophia and keeps her in sync — <b style="color:#FDBA74">free, forever</b> with your Suite. Takes a minute to set up.</div></div><a class="btn p sm" style="width:auto;background:linear-gradient(135deg,#FB923C,#F43F5E)" href="https://joolt.io/agent-rep" target="_blank" rel="noopener">Create my free rep →</a></div></div>
     <div class="card" style="background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(34,211,238,.06));border-color:rgba(251,191,36,.3)">
       <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>${s.mode==='practice'?'Practice mode — rehearse safely':'Live mode — real business'}</b><div style="color:var(--mut);font-size:13px;margin-top:3px">${s.mode==='practice'?"You're on safe demo data. When you're ready, clear it and go live on your real business.":"You're working on your real business. You can drop back to Practice anytime."}</div></div>${s.mode==='practice'?'<button class="btn p" onclick="goLive()">Make my Sophia Box live →</button>':'<button class="btn g" onclick="backToPractice()">Back to practice</button>'}</div>
     </div>
     <div class="card" style="background:linear-gradient(135deg,rgba(124,92,255,.16),rgba(34,211,238,.14));border-color:rgba(124,92,255,.4)">
-      <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>Your plan: Sophia in a Box — you run it</b><div style="color:#cdd6f0;font-size:13px;margin-top:3px">Want Sophia to run the plays <b>for you, 24/7</b> — even with your laptop closed? That's Sophia Hosted.</div></div><a class="btn up sm" style="width:auto" href="https://joolt.io/agent-rep" target="_blank" rel="noopener">Upgrade to Sophia Hosted →</a></div>
+      <div class="arow" style="flex-wrap:wrap;gap:10px"><div><b>Your plan: Sophia in a Box — you run it</b><div style="color:#cdd6f0;font-size:13px;margin-top:3px">Want Sophia to run the plays <b>for you, 24/7</b> — even with your laptop closed? That's Sophia Hosted.</div></div><a class="btn up sm" style="width:auto" href="https://joolt.io/talk-to-us" target="_blank" rel="noopener">Upgrade to Sophia Hosted →</a></div>
     </div>
     <div class="wzhelp"><a onclick="setWiz(1)">← Review the setup steps</a></div>`;
   }
