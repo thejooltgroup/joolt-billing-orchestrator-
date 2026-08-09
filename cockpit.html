@@ -262,6 +262,8 @@ async function sophiaRun(system, messages, onStep){
 const busy={};
 let autoOpen=null;
 let runOpen=null;
+let sendOpen=false;
+function toggleEl(id,btn){ var e=document.getElementById(id); if(!e)return; var show=(e.style.display==='none'||!e.style.display); e.style.display=show?'block':'none'; if(btn) btn.textContent=show?'Hide exact message':'Show exact message'; }
 async function runAutomation(key){
   const a=ALL_AUTOS[key];
   if(!Store.state.apiKey){ toast("Add your Claude key in Setup, then Sophia can actually run this."); go("setup"); return; }
@@ -278,7 +280,7 @@ async function runAutomation(key){
 
 /* ============================ Actions ============================ */
 function setDial(key,val){ Store.state.dials[key]=val; Store.save(); render(); }
-function approveDraft(id){ const d=Store.state.drafts.find(x=>x.id===id); if(!d) return; d.status="approved"; Store.state.done.unshift({id:"a"+Date.now(),summary:"Approved: "+d.title,when:Date.now()}); Store.save(); toast(Store.state.mode==="practice"?"Approved (practice — nothing really sent).":"Approved."); render(); }
+function approveDraft(id){ const d=Store.state.drafts.find(x=>x.id===id); if(!d) return; d.status="approved"; Store.state.done.unshift({id:"a"+Date.now(),summary:"Approved: "+d.title,when:Date.now()}); Store.save(); toast(Store.state.mode==="practice"?"Approved (practice — nothing really sent).":"Approved. Hit “Send in Claude” below to actually send it."); render(); }
 function dismissDraft(id){ Store.state.drafts=Store.state.drafts.filter(x=>x.id!==id); Store.save(); render(); }
 function copyText(t){ if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>toast("Copied")); }
 function toggleTool(name){ Store.state.setup.tools[name]=!Store.state.setup.tools[name]; Store.save(); render(); }
@@ -338,7 +340,7 @@ async function askSend(){
 /* ============================ Render ============================ */
 function esc(x){ return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 let page="today";
-function go(p){ page=p; document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("on",n.dataset.s===p)); render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; window.scrollTo(0,0); }
+function go(p){ page=p; runOpen=null; sendOpen=false; autoOpen=null; document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("on",n.dataset.s===p)); render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; window.scrollTo(0,0); }
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.style.display="block"; clearTimeout(window._tt); window._tt=setTimeout(()=>el.style.display="none",4200); }
 
 function render(){
@@ -463,6 +465,13 @@ function promptFor(key){
     +'...\n'
     +'===END===';
 }
+function promptPreviewFor(key){
+  const a=ALL_AUTOS[key]||{name:'this play',desc:''};
+  return 'Sophia — run my "'+a.name+'" play on my real business.\n\n'
+    +(a.desc||'')+'\n\n'
+    +'Use my connected tools. Draft everything for my approval — don’t send, post, or pay anything.\n\n'
+    +'When you’re done, show me each draft so I can review it.';
+}
 function openRun(key){ runOpen=key; autoOpen=key; render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; window.scrollTo(0,0); try{ if(navigator.clipboard) navigator.clipboard.writeText(promptFor(key)); }catch(e){} }
 function closeRun(){ runOpen=null; render(); window.scrollTo(0,0); }
 function copyPromptRun(){ const p=promptFor(runOpen); if(navigator.clipboard){ navigator.clipboard.writeText(p).then(function(){toast("Copied — now paste it into your Sophia chat.");},function(){toast("Couldn't copy — select the text in the box and copy it manually.");}); } else { toast("Select the text in the box and copy it manually."); } }
@@ -503,20 +512,67 @@ function renderRunPanel(a){
   const prompt=promptFor(a.key);
   return `
     <div class="ph"><div><div class="wzhelp" style="text-align:left;margin:0 0 8px"><a onclick="closeRun()">← Back to ${esc(a.name)}</a></div><h1>Run ${a.ic} ${esc(a.name)} in Claude</h1><div class="s">Three quick steps. Sophia does the real work in Claude — your results come back here.</div></div></div>
-    <div class="wzcard"><div class="lstep"><span class="ln">1</span><div style="flex:1"><b>Copy this message</b><div class="wzhint" style="margin:4px 0 8px">It's already on your clipboard — or tap Copy again.</div><textarea class="inp" id="promptBox" readonly style="min-height:134px;font-size:12.5px">${esc(prompt)}</textarea><div style="margin-top:8px"><button class="btn p sm" onclick="copyPromptRun()">📋 Copy again</button></div></div></div></div>
+    <div class="wzcard"><div class="lstep"><span class="ln">1</span><div style="flex:1"><b>Copy this message</b><div class="wzhint" style="margin:4px 0 8px">It's already on your clipboard — or tap Copy again. (This is the plain-English version — Sophia gets a little extra formatting so your results come back clean.)</div><textarea class="inp" id="promptBox" readonly style="min-height:120px;font-size:12.5px">${esc(promptPreviewFor(a.key))}</textarea><div style="margin-top:8px"><button class="btn p sm" onclick="copyPromptRun()">📋 Copy again</button> <a class="copy" style="font-size:12px;margin-left:10px" onclick="toggleEl('rawP',this)">Show exact message</a></div><textarea class="inp" id="rawP" readonly style="display:none;min-height:160px;font-size:12px;margin-top:8px">${esc(prompt)}</textarea></div></div></div>
     <div class="wzcard"><div class="lstep"><span class="ln">2</span><div style="flex:1"><b>Paste it into your pinned Sophia chat</b><div class="wzhint" style="margin:4px 0 8px">Open the Claude chat where your Sophia plugin and tools live — the one you pinned in Setup. Paste it, send, and let her work. She finishes with a results block.</div><a class="btn g sm" style="width:auto" href="https://claude.ai/" target="_blank" rel="noopener">Open Claude ↗</a> &nbsp;<span class="wzhint" style="display:inline">Not pinned yet? <span class="copy" onclick="go('setup')">Set it up →</span></span></div></div></div>
     <div class="wzcard"><div class="lstep"><span class="ln">3</span><div style="flex:1"><b>Paste Sophia's reply back here</b><div class="wzhint" style="margin:4px 0 8px">Copy her whole reply (including the block at the end) and paste it below.</div><textarea class="inp" id="rcpt" placeholder="Paste Sophia's whole reply here…" style="min-height:120px"></textarea><div class="wnav" style="margin-top:12px"><button class="btn g sm" onclick="closeRun()">← Back</button><button class="btn p" onclick="ingestReceipt()">Show my results →</button></div></div></div></div>
   `;
 }
 
+/* ===== Send-in-Claude loop: approve → hand approved drafts back to Sophia to actually send → mark done ===== */
+function approvedDrafts(){ return Store.state.drafts.filter(d=>d.status==='approved'); }
+function sendPreview(){
+  const ds=approvedDrafts();
+  let p='Sophia — I approved these. Please send/post them now using my connected tools:\n\n';
+  ds.forEach(function(d,i){ p+=(i+1)+'. '+(d.title||'(untitled)')+'  ('+(d.bucket||'other')+')\n'; });
+  p+='\nTell me when each one is done.';
+  return p;
+}
+function sendPromptFor(){
+  const ds=approvedDrafts();
+  let p='Sophia — I approved these '+ds.length+' item'+(ds.length===1?'':'s')+'. Now actually send/post them for me using my connected tools.\n\n';
+  ds.forEach(function(d,i){ p+='── '+(i+1)+'. '+(d.title||'(untitled)')+'  ['+(d.bucket||'other')+']\n'+(d.body||'')+'\n\n'; });
+  p+='Send or post each one to the right place with my connected tools. If one needs a detail I didn’t give you (an address, an amount, who it goes to), ask me instead of guessing.\n\n';
+  p+='When everything is sent, confirm at the very end in EXACTLY this plain-text format so my cockpit can close the loop:\n\n===SOPHIA SENT===\n';
+  ds.forEach(function(d){ p+='sent: '+(d.title||'(untitled)')+'\n'; });
+  p+='===END===';
+  return p;
+}
+function openSend(){ if(approvedDrafts().length===0){ toast("Approve something first, then you can send it in Claude."); return; } sendOpen=true; render(); const m=document.getElementById("main"); if(m)m.scrollTop=0; window.scrollTo(0,0); try{ if(navigator.clipboard) navigator.clipboard.writeText(sendPromptFor()); }catch(e){} }
+function closeSend(){ sendOpen=false; render(); window.scrollTo(0,0); }
+function copySendPrompt(){ const p=sendPromptFor(); if(navigator.clipboard){ navigator.clipboard.writeText(p).then(function(){toast("Copied — now paste it into your Sophia chat.");},function(){toast("Couldn't copy — select the text in the box and copy it manually.");}); } else { toast("Select the text in the box and copy it manually."); } }
+function markSent(){
+  const ds=approvedDrafts(); const n=ds.length; if(n===0){ sendOpen=false; render(); return; }
+  ds.forEach(function(d){ d.status="sent"; Store.state.done.unshift({id:"s"+Date.now()+Math.floor(Math.random()*999),summary:"Sent: "+d.title,when:Date.now()}); });
+  Store.save(); sendOpen=false;
+  toast(Store.state.mode==="practice"?("✓ Marked "+n+" as sent (practice — nothing really left your account)."):("✓ Loop closed — "+n+" marked as sent."));
+  go("results");
+}
+function renderSendPanel(){
+  const ds=approvedDrafts(); const n=ds.length; const preview=sendPreview();
+  return `
+    <div class="ph"><div><div class="wzhelp" style="text-align:left;margin:0 0 8px"><a onclick="closeSend()">← Back to Results</a></div><h1>Send ${n} approved ${n===1?'item':'items'} in Claude</h1><div class="s">Approving said “yes.” Sophia does the actual sending in Claude — one quick copy-paste, then mark it done.</div></div></div>
+    <div class="wzcard"><div class="lstep"><span class="ln">1</span><div style="flex:1"><b>Copy this message</b><div class="wzhint" style="margin:4px 0 8px">It's already on your clipboard — or tap Copy again. (Plain-English version — your approved drafts are attached for Sophia behind the scenes.)</div><textarea class="inp" id="sendBox" readonly style="min-height:110px;font-size:12.5px">${esc(preview)}</textarea><div style="margin-top:8px"><button class="btn p sm" onclick="copySendPrompt()">📋 Copy again</button> <a class="copy" style="font-size:12px;margin-left:10px" onclick="toggleEl('rawS',this)">Show exact message</a></div><textarea class="inp" id="rawS" readonly style="display:none;min-height:180px;font-size:12px;margin-top:8px">${esc(sendPromptFor())}</textarea></div></div></div>
+    <div class="wzcard"><div class="lstep"><span class="ln">2</span><div style="flex:1"><b>Paste it into your pinned Sophia chat</b><div class="wzhint" style="margin:4px 0 8px">Open the Claude chat where your Sophia plugin and tools live — the one you pinned in Setup. Paste it, send, and she does the real sending. She'll confirm when each one is done.</div><a class="btn g sm" style="width:auto" href="https://claude.ai/" target="_blank" rel="noopener">Open Claude ↗</a> &nbsp;<span class="wzhint" style="display:inline">Not pinned yet? <span class="copy" onclick="go('setup')">Set it up →</span></span></div></div></div>
+    <div class="wzcard"><div class="lstep"><span class="ln">3</span><div style="flex:1"><b>Done? Close the loop</b><div class="wzhint" style="margin:4px 0 8px">Once Sophia confirms she sent them, mark them here so your cockpit stays in sync.</div><div class="wnav" style="margin-top:6px"><button class="btn g sm" onclick="closeSend()">← Back</button><button class="btn p" onclick="markSent()">Mark ${n} as sent ✓</button></div></div></div></div>
+  `;
+}
 
 function renderResults(){
   const s=Store.state; const all=s.drafts;
+  if(sendOpen) return renderSendPanel();
+  const appr=all.filter(d=>d.status==='approved');
+  const banner = appr.length? `<div class="card" style="background:linear-gradient(135deg,rgba(124,92,255,.16),rgba(34,211,238,.12));border-color:rgba(124,92,255,.4)"><div class="arow" style="flex-wrap:wrap;gap:10px"><div style="flex:1;min-width:200px"><b>✅ ${appr.length} approved — ready to send</b><div style="color:#cdd6f0;font-size:13px;margin-top:3px">Approving just says “yes.” To actually send or post them, hand them to Sophia in Claude — one quick copy-paste.</div></div><button class="btn p" onclick="openSend()">Send ${appr.length} in Claude →</button></div></div>` : "";
+  const rowRight=(d)=>{
+    if(d.status==='pending') return `<span class="badge b-a">needs approval</span><button class="btn p sm" onclick="approveDraft('${d.id}')">Approve</button>`;
+    if(d.status==='sent') return `<span class="badge b-g">✓ sent</span>`;
+    return `<span class="badge b-c">ready to send</span>`;
+  };
   return `
-    <div class="ph"><div><h1>Results</h1><div class="s">Everything Sophia made — approve it, copy it, use it.</div></div></div>
+    <div class="ph"><div><h1>Results</h1><div class="s">Everything Sophia made — approve it, send it, done.</div></div></div>
+    ${banner}
     <div class="card">
       <h3>Everything Sophia made <span class="badge b-c">${all.length}</span></h3>
-      ${all.length? all.map(d=>`<div class="rowi"><div style="min-width:0"><div class="t">${esc(d.title)}</div><div class="d">${esc(d.bucket)} · ${esc(d.automation)}</div><div style="color:#A0A9C5;font-size:12px;margin-top:5px;white-space:pre-wrap;max-width:760px">${esc((d.body||"").slice(0,240))}${(d.body||"").length>240?"…":""}</div></div><div style="display:flex;gap:6px;align-items:flex-start">${d.status==='pending'?`<span class="badge b-a">needs approval</span><button class="btn p sm" onclick="approveDraft('${d.id}')">Approve</button>`:`<span class="badge b-g">approved</span>`}<button class="btn g sm" onclick="copyText(${JSON.stringify(d.body).replace(/"/g,'&quot;')})">Copy</button></div></div>`).join("")
+      ${all.length? all.map(d=>`<div class="rowi"><div style="min-width:0"><div class="t">${esc(d.title)}</div><div class="d">${esc(d.bucket)} · ${esc(d.automation)}</div><div style="color:#A0A9C5;font-size:12px;margin-top:5px;white-space:pre-wrap;max-width:760px">${esc((d.body||"").slice(0,240))}${(d.body||"").length>240?"…":""}</div></div><div style="display:flex;gap:6px;align-items:flex-start">${rowRight(d)}<button class="btn g sm" onclick="copyText(${JSON.stringify(d.body).replace(/"/g,'&quot;')})">Copy</button></div></div>`).join("")
         : `<div style="color:var(--mut);font-size:13px;padding:10px 0">Nothing yet. Run an automation on the <span class="copy" onclick="go('auto')">Automations</span> screen and Sophia's work shows up here.</div>`}
     </div>`;
 }
