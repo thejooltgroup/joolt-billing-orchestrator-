@@ -1910,37 +1910,73 @@ function normalizeBucket(b){
   };
   return map[b] || (TEMPLATE_BUCKETS.indexOf(b) >= 0 ? b : "other");
 }
+/* Shared ingest — used by paste AND the one-tap link, so both behave identically. */
+function ingestReceiptObject(r){
+  if (!r || r.joolt_receipt !== 1) return { ok:false };
+  r._ingested = Date.now();
+  const outs = Array.isArray(r.outputs) ? r.outputs.filter(o => o && (o.body || o.title)) : [];
+  Store.update(function(s){
+    s.sophiaReceipts = (s.sophiaReceipts || []); s.sophiaReceipts.push(r);
+    if (outs.length){
+      s.sophiaOutputs = (s.sophiaOutputs || []);
+      outs.forEach(function(o){
+        s.sophiaOutputs.push({
+          bucket: normalizeBucket(o.bucket),
+          title: String(o.title || ((r.play || "Sophia") + " output")),
+          body: String(o.body || ""),
+          play: String(r.play || ""),
+          date: String(r.date || ""),
+          _ingested: Date.now()
+        });
+      });
+    }
+  });
+  return { ok:true, outs: outs.length };
+}
 function syncIngest(){
   const t = document.getElementById("syncPaste"); if (!t) return;
   const v = t.value.trim(), a = v.indexOf("{"), b = v.lastIndexOf("}");
   if (a === -1 || b === -1) { toast("Paste the whole receipt — the json block Sophia gave you"); return; }
   try {
     const r = JSON.parse(v.slice(a, b + 1));
-    if (r.joolt_receipt !== 1) { toast("That doesn't look like a Sophia receipt"); return; }
-    r._ingested = Date.now();
-    const outs = Array.isArray(r.outputs) ? r.outputs.filter(o => o && (o.body || o.title)) : [];
-    Store.update(function(s){
-      s.sophiaReceipts = (s.sophiaReceipts || []); s.sophiaReceipts.push(r);
-      if (outs.length){
-        s.sophiaOutputs = (s.sophiaOutputs || []);
-        outs.forEach(function(o){
-          s.sophiaOutputs.push({
-            bucket: normalizeBucket(o.bucket),
-            title: String(o.title || ((r.play || "Sophia") + " output")),
-            body: String(o.body || ""),
-            play: String(r.play || ""),
-            date: String(r.date || ""),
-            _ingested: Date.now()
-          });
-        });
-      }
-    });
-    toast(outs.length
-      ? ("Receipt added — " + outs.length + " output" + (outs.length > 1 ? "s" : "") + " saved to your library")
+    const res = ingestReceiptObject(r);
+    if (!res.ok) { toast("That doesn't look like a Sophia receipt"); return; }
+    toast(res.outs
+      ? ("Receipt added — " + res.outs + " output" + (res.outs > 1 ? "s" : "") + " saved to your library")
       : "Receipt added — Sophia's numbers updated");
     go("sync");
   } catch(e) { toast("Couldn't read that — paste the entire json block, braces included"); }
 }
+/* One-tap link: Sophia ends a play with a link like ...#receipt=<base64-or-json>.
+   Opening/clicking it drops the receipt straight in — no copy, no paste, no "when". */
+function handleReceiptLink(){
+  try{
+    const m = (location.hash || "").match(/receipt=([^&]+)/);
+    if (!m) return false;
+    let raw = decodeURIComponent(m[1]), jsonText;
+    if (raw.charAt(0) === "{") { jsonText = raw; }
+    else {
+      let b64 = raw.replace(/-/g,"+").replace(/_/g,"/");
+      while (b64.length % 4) b64 += "=";
+      jsonText = decodeURIComponent(escape(window.atob(b64)));
+    }
+    const res = ingestReceiptObject(JSON.parse(jsonText));
+    if (res.ok) {
+      go("sync");
+      toast(res.outs
+        ? ("Logged — " + res.outs + " output" + (res.outs > 1 ? "s" : "") + " added to your library")
+        : "Logged — Sophia's numbers updated");
+      return true;
+    }
+  } catch(e){ /* bad link — silently ignore, paste box still works */ }
+  finally {
+    if (/receipt=/.test(location.hash || "")) {
+      try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
+    }
+  }
+  return false;
+}
+window.addEventListener("hashchange", handleReceiptLink);
 /* Copy any synced output by its index in Store.state.sophiaOutputs */
 function copyOutput(i){
   const o = (Store.state.sophiaOutputs || [])[i]; if (!o) return;
@@ -1957,7 +1993,7 @@ pages["sync"] = () => {
   const bucketLabel = { estimates:"Estimate", invoices:"Invoice", emails:"Email", sms:"SMS", social:"Social post", contracts:"Contract", other:"Note" };
   const recentOut = outs.map((o, i) => ({ o, i })).reverse().slice(0, 20);
   return `
-  <div class="page-h"><h1>Sophia Sync</h1><p class="sub">When a play finishes, Sophia hands you a receipt. Paste it here — your numbers update and anything she wrote (emails, posts, estimates…) lands in your library. This is the one place everything Sophia makes shows up. (Automatic folder sync is coming next.)</p></div>
+  <div class="page-h"><h1>Sophia Sync</h1><p class="sub"><b>No schedule to keep — you never "do a sync."</b> When a play finishes, tap the link Sophia gives you (or paste her receipt below) and it lands here: your numbers update and anything she wrote — emails, posts, estimates — goes into your library. One tap per play. Skip one and nothing breaks.</p></div>
   <div class="kpi-grid">
     <div class="kpi"><div class="lbl">Leads captured</div><div class="val">${tot.leads}</div><div class="delta">${tot.bookings} booked</div></div>
     <div class="kpi"><div class="lbl">Posts scheduled</div><div class="val">${tot.posts_scheduled}</div><div class="delta">by Sophia</div></div>
@@ -1966,7 +2002,8 @@ pages["sync"] = () => {
   </div>
   <div class="grid-2">
     <div class="card">
-      <div class="card-h"><div class="card-title">Paste a Sophia receipt</div></div>
+      <div class="card-h"><div class="card-title">Paste a receipt (backup)</div></div>
+      <p style="color:#6A7599;font-size:12px;margin:0 0 8px">Usually you'll just tap Sophia's one-tap link and never come here. This is for when you copied a receipt yourself.</p>
       <textarea id="syncPaste" placeholder='Paste the json block from the end of any play — starts with {"joolt_receipt":1,...}' style="width:100%;min-height:150px;background:#0D1226;border:1px solid #232B4C;border-radius:10px;color:#F0F3FA;padding:12px;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>
       <div style="margin-top:10px"><button class="btn primary" onclick="syncIngest()">Add receipt</button></div>
     </div>
@@ -3418,6 +3455,7 @@ if (!Store.state.onboarded && Store.state.contacts.length === 0) {
   setTimeout(() => openWizard(), 300);
 }
 go("plays");
+handleReceiptLink(); // if opened via a one-tap Sophia link, ingest + jump to Sync
 updateBizName();
 updateCounts();
 /* Count automations run (for the admin usage record) without touching the flow itself. */
